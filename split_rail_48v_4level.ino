@@ -49,6 +49,8 @@ void doKnob(){ // look in calcWatts() to see if this is commented out
   if (knobAdc < 0) knobAdc = 0; // values 0-10 count as zero
 }
 
+int analogState[NUM_LEDS] = {0}; // stores the last analogWrite() value for each LED
+                                 // so we don't analogWrite unnecessarily!
 // GLOBAL VARIABLES
 #define AVG_CYCLES 50 // average measured values over this many samples
 #define DISPLAY_INTERVAL 2000 // when auto-display is on, display every this many milli-seconds
@@ -368,24 +370,30 @@ void doLeds(){
   for(i = 0; i < NUM_LEDS; i++) {
     if(ledState[i]==STATE_ON){
       //      digitalWrite(ledPins[i], HIGH);
-      analogWrite(ledPins[i], brightness);
+      if (analogState[i] != brightness) analogWrite(ledPins[i], brightness); // don't analogWrite unnecessarily!
+      analogState[i] = brightness;
     }
     else if (ledState[i]==STATE_OFF){
       digitalWrite(ledPins[i], LOW);
+      analogState[i] = 0;
     }
     else if (ledState[i]==STATE_BLINK && blinkState==1){
       //      digitalWrite(ledPins[i], HIGH);
-      analogWrite(ledPins[i], brightness);
+      if (analogState[i] != brightness) analogWrite(ledPins[i], brightness); // don't analogWrite unnecessarily!
+      analogState[i] = brightness;
     }
     else if (ledState[i]==STATE_BLINK && blinkState==0){
       digitalWrite(ledPins[i], LOW);
+      analogState[i] = 0;
     }
     else if (ledState[i]==STATE_BLINKFAST && fastBlinkState==1){
       //      digitalWrite(ledPins[i], HIGH);
-      analogWrite(ledPins[i], brightness);
+      if (analogState[i] != brightness) analogWrite(ledPins[i], brightness); // don't analogWrite unnecessarily!
+      analogState[i] = brightness;
     }
     else if (ledState[i]==STATE_BLINKFAST && fastBlinkState==0){
       digitalWrite(ledPins[i], LOW);
+      analogState[i] = 0;
     }
   }
 
