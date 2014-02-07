@@ -18,68 +18,68 @@
  * 1.13 - TS => D4Avg fix, 2400 baud
  * 1.14 - FF => Added CalcWattHours function, changing the Sign's data to Watt Hours, instead of Watts, in time for BMF VII
  * 1.15 - JS => started adding buck converter stuff 
- * 2.09 - JS => changed to split_rail_48v_4level, adding PWM for LED pedalometer  */
-char versionStr[] = "AC Power Pedal Power Utility Box ver. 1.14. For best results connect the Sign!";
+ * 2.1 - JS => changed to split_rail_48v_4level, adding PWM for LED pedalometer, turning off buck converter and sign output*/
+char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility Box ver. 2.1";
 
-#define brightnessVoltage  28.0  // voltage at which LED brightness starts to fold back
-#define brightnessBase 255  // maximum brightness value (255 is max value here)
+// PINS
+#define RELAYPIN 2 // relay cutoff output pin // NEVER USE 13 FOR A RELAY
+#define VOLTPIN A0 // Voltage Sensor Pin
+#define AMPSPIN A3 // Current Sensor Pin
+#define NUM_LEDS 4 // Number of LED outputs.
+const int ledPins[NUM_LEDS] = {
+  3, 9, 10, 11};
+  //  2, 3, 4, 5, 6, 7, 8};
+
+// levels at which each LED turns on (not including special states)
+const float ledLevels[NUM_LEDS] = {
+  24.0, 32.0, 40.0, 48.0};
+//  24.0, 28.0, 32.0, 36.0, 40.0, 44.0, 48.0};
+
+#define BRIGHTNESSVOLTAGE 28.0  // voltage at which LED brightness starts to fold back
+#define BRIGHTNESSBASE 255  // maximum brightness value (255 is max value here)
 int brightness = 0;  // analogWrite brightness value, updated by getVoltageAndBrightness()
-#define brightnessFactor 4.57 // the factor by which PWM is reduced upon higher system voltage for LEDs
+#define BRIGHTNESSFACTOR 4.57 // the factor by which PWM is reduced upon higher system voltage for LEDs
 
 // FAKE AC POWER VARIABLES
-const int knobPin = A2;
+#define KNOBPIN A2
 int knobAdc = 0;
-void doKnob(){
-  knobAdc = analogRead(knobPin) - 10; // make sure not to add if knob is off
+void doKnob(){ // look in calcWatts() to see if this is commented out
+  knobAdc = analogRead(KNOBPIN) - 10; // make sure not to add if knob is off
   if (knobAdc < 0) knobAdc = 0; // values 0-10 count as zero
 }
 
 // GLOBAL VARIABLES
-const int AVG_CYCLES = 50; // average measured values over this many samples
-const int DISPLAY_INTERVAL = 2000; // when auto-display is on, display every this many milli-seconds
-const int LED_UPDATE_INTERVAL = 1000;
-const int D4_AVG_PERIOD = 10000;
-const int BLINK_PERIOD = 600;
-const int FAST_BLINK_PERIOD = 150;
+#define AVG_CYCLES 50 // average measured values over this many samples
+#define DISPLAY_INTERVAL 2000 // when auto-display is on, display every this many milli-seconds
+#define LED_UPDATE_INTERVAL 1000
+#define D4_AVG_PERIOD 10000
+#define BLINK_PERIOD 600
+#define FAST_BLINK_PERIOD 150
 
 // STATE CONSTANTS
-const int STATE_OFF = 0;
-const int STATE_BLINK = 1;
-const int STATE_BLINKFAST = 3;
-const int STATE_ON = 2;
+#define STATE_OFF 0
+#define STATE_BLINK 1
+#define STATE_BLINKFAST 3
+#define STATE_ON 2
 
-// LEDS
-const int NUM_LEDS = 4; // Number of LED outputs.
-// levels at which each LED turns on (not including special states)
-float ledLevels[NUM_LEDS] = {
-  24.0, 32.0, 40.0, 48.0};
-//  24.0, 28.0, 32.0, 36.0, 40.0, 44.0, 48.0};
 // current active level
 int ledLevel = -1;
 // on/off/blink/fastblink state of each led
 int ledState[NUM_LEDS] = {
   STATE_OFF};
 
-// PINS
-const int relayPin = 2; // relay cutoff output pin // NEVER USE 13 FOR A RELAY
-const int voltPin = A0; // Voltage Sensor Pin
-const int ampsPin = A3; // Current Sensor Pin
-const int ledPins[NUM_LEDS] = {
-  //  2, 3, 4, 5, 6, 7, 8};
-  3, 9, 10, 11};
-
 // SPECIAL STATE
-const float MAX_VOLTS = 50.0;  //
-const float RECOVERY_VOLTS = 40.0;
+#define MAX_VOLTS 50.0  //
+#define RECOVERY_VOLTS 40.0
 int relayState = STATE_OFF;
 
-const float DANGER_VOLTS = 52.0;
+#define DANGER_VOLTS 52.0
 int dangerState = STATE_OFF;
 
 int blinkState = 0;
 int fastBlinkState = 0;
 
-const float voltcoeff = 13.25;  // larger number interprets as lower voltage
+#define VOLTCOEFF 13.25  // larger number interprets as lower voltage
 
 //Voltage related variables.
 int voltsAdc = 0;
@@ -124,11 +124,11 @@ void setup() {
 
   Serial.println(versionStr);
 
-  pinMode(voltPin,INPUT);
-  pinMode(ampsPin,INPUT);
+  pinMode(VOLTPIN,INPUT);
+  pinMode(AMPSPIN,INPUT);
 
-  pinMode(relayPin, OUTPUT);
-  digitalWrite(relayPin,LOW);
+  pinMode(RELAYPIN, OUTPUT);
+  digitalWrite(RELAYPIN,LOW);
 
   // init LED pins
   for(i = 0; i < NUM_LEDS; i++) {
@@ -149,9 +149,9 @@ void loop() {
   getVolts();
   //  doBuck(); // adjust inverter voltage
   doSafety();
-  //  getAmps();
+  //  getAmps();  // only if we have a current sensor
   readCount++;
-  //  calcWatts();
+  //  calcWatts(); // also adds in knob value for extra wattage, unless commented out
 
   //  if it's been at least 1/4 second since the last time we measured Watt Hours...
   /*  if (time - wattHourTimer >= 250) {
@@ -283,12 +283,12 @@ void doBuck() {
 
 void doSafety() {
   if (volts > MAX_VOLTS){
-    digitalWrite(relayPin, HIGH);
+    digitalWrite(RELAYPIN, HIGH);
     relayState = STATE_ON;
   }
 
   if (relayState == STATE_ON && volts < RECOVERY_VOLTS){
-    digitalWrite(relayPin, LOW);
+    digitalWrite(RELAYPIN, LOW);
     relayState = STATE_OFF;
   }
 
@@ -393,9 +393,9 @@ void doLeds(){
 
 int ampsCompensation = 2; // wtf is this?
 void getAmps(){
-  //  ampsAdc = analogRead(ampsPin);
-  //  ampsAdc = analogRead(ampsPin);
-  ampsAdc = analogRead(ampsPin);
+  //  ampsAdc = analogRead(AMPSPIN);
+  //  ampsAdc = analogRead(AMPSPIN);
+  ampsAdc = analogRead(AMPSPIN);
   ampsAdc += ampsCompensation;
   ampsAdcAvg = average(ampsAdc, ampsAdcAvg);
   amps = adc2amps(ampsAdcAvg);
@@ -404,7 +404,7 @@ void getAmps(){
 
 
 void getVolts(){
-  voltsAdc = analogRead(voltPin);
+  voltsAdc = analogRead(VOLTPIN);
   voltsAdcAvg = average(voltsAdc, voltsAdcAvg);
   volts = adc2volts(voltsAdcAvg);
 
@@ -412,11 +412,11 @@ void getVolts(){
   voltsBuckAvg = average(voltsBuckAdc, voltsBuckAvg);
   voltsBuck = adc2volts(voltsBuckAvg);
 
-  //  brightness = 255 - brightnessBase * (1.0 - (brightnessKnobFactor * (1023 - analogRead(knobpin))));  // the knob affects brightnes
+  //  brightness = 255 - BRIGHTNESSBASE * (1.0 - (brightnessKnobFactor * (1023 - analogRead(knobpin))));  // the knob affects brightnes
 
-  brightness = brightnessBase;  // full brightness unless dimming is required
-  if (volts > brightnessVoltage)
-    brightness -= (brightnessFactor * (volts - brightnessVoltage));  // brightness is reduced by overvoltage
+  brightness = BRIGHTNESSBASE;  // full brightness unless dimming is required
+  if (volts > BRIGHTNESSVOLTAGE)
+    brightness -= (BRIGHTNESSFACTOR * (volts - BRIGHTNESSVOLTAGE));  // brightness is reduced by overvoltage
   // this means if voltage is 28 volts over, PWM will be 255 - (28*4.57) or 127, 50% duty cycle
 }
 
@@ -430,14 +430,14 @@ static int volts2adc(float v){
 
   //adc = v * 10/110/5 * 1024 == v * 18.618181818181818;
 
-  return v * voltcoeff;
+  return v * VOLTCOEFF;
 }
 
 
 
 float adc2volts(float adc){
   // v = adc * 110/10 * 5 / 1024 == adc * 0.0537109375;
-  return adc * (1 / voltcoeff); // 55 / 1024 = 0.0537109375;
+  return adc * (1 / VOLTCOEFF); // 55 / 1024 = 0.0537109375;
 }
 
 // amp sensor conversion factors
@@ -455,8 +455,8 @@ float adc2amps(float adc){
 
 void calcWatts(){
   watts = volts * amps;
-  doKnob();
-  watts += knobAdc / 2;
+//  doKnob(); // only if we have a knob to look at
+//  watts += knobAdc / 2; // uncomment this line too
   //Serial.print("calcWatts: ");
   //Serial.println(watts);
 }
@@ -489,7 +489,7 @@ void printWattHours(){
 void printDisplay(){
   Serial.print(volts);
   Serial.print("v (");
-  Serial.println(analogRead(voltPin));
+  Serial.println(analogRead(VOLTPIN));
   //  Serial.print(", a: ");
   //  Serial.print(amps);
   //  Serial.print(", va: ");
