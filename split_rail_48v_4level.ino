@@ -80,7 +80,7 @@ int dangerState = STATE_OFF;
 int blinkState = 0;
 int fastBlinkState = 0;
 
-#define VOLTCOEFF 13.209  // larger number interprets as lower voltage
+#define VOLTCOEFF 13.179  // larger number interprets as lower voltage
 
 //Voltage related variables.
 int voltsAdc = 0;
