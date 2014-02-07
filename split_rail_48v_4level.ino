@@ -35,10 +35,11 @@ const float ledLevels[NUM_LEDS] = {
   24.0, 32.0, 40.0, 48.0};
 //  24.0, 28.0, 32.0, 36.0, 40.0, 44.0, 48.0};
 
-#define BRIGHTNESSVOLTAGE 28.0  // voltage at which LED brightness starts to fold back
+#define BRIGHTNESSVOLTAGE 24.0  // voltage at which LED brightness starts to fold back
 #define BRIGHTNESSBASE 255  // maximum brightness value (255 is max value here)
 int brightness = 0;  // analogWrite brightness value, updated by getVoltageAndBrightness()
-#define BRIGHTNESSFACTOR 4.57 // the factor by which PWM is reduced upon higher system voltage for LEDs
+#define BRIGHTNESSFACTOR (BRIGHTNESSBASE / BRIGHTNESSVOLTAGE) / 2 // results in half PWM at double voltage
+// for every volt over BRIGHTNESSVOLTAGE, pwm is reduced by BRIGHTNESSFACTOR from BRIGHTNESSBASE
 
 // FAKE AC POWER VARIABLES
 #define KNOBPIN A2
