@@ -173,6 +173,9 @@ void loop() {
    }
    */
   //Now show the - Team how hard to pedal.
+  doBlink();  // blink the LEDs
+  doLeds();
+
   if(time - timeDisplay > DISPLAY_INTERVAL){
     /*
     // set up the 4D avg cycles
@@ -186,9 +189,6 @@ void loop() {
      }
      */
 
-    doBlink();  // blink the LEDs
-
-    doLeds();
 
     // printWatts();
     //    printWattHours();
