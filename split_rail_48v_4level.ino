@@ -31,8 +31,8 @@ const int ledPins[NUM_LEDS] = {
   //  2, 3, 4, 5, 6, 7, 8};
 
 // levels at which each LED turns on (not including special states)
-const float ledLevels[NUM_LEDS] = {
-  24.0, 32.0, 40.0, 48.0};
+const float ledLevels[NUM_LEDS+1] = {
+  24.0, 32.0, 40.0, 48.0, 50.0};
 //  24.0, 28.0, 32.0, 36.0, 40.0, 44.0, 48.0};
 
 #define BRIGHTNESSVOLTAGE 24.0  // voltage at which LED brightness starts to fold back
@@ -72,8 +72,8 @@ int ledState[NUM_LEDS] = {
   STATE_OFF};
 
 // SPECIAL STATE
-#define MAX_VOLTS 50.0  //
-#define RECOVERY_VOLTS 40.0
+#define MAX_VOLTS 50.5  //
+#define RECOVERY_VOLTS 44.0
 int relayState = STATE_OFF;
 
 #define DANGER_VOLTS 52.0
@@ -359,9 +359,9 @@ void doLeds(){
     }
   }
 
-  // if at the top level, blink it fast
-  if (ledLevel == (NUM_LEDS-1)){
-    ledState[ledLevel] = STATE_BLINKFAST;
+  // if at the top voltage level, blink last LEDS fast
+  if (volts >= ledLevels[NUM_LEDS]) { // ledLevel == (NUM_LEDS-1)){
+    ledState[NUM_LEDS-1] = STATE_BLINKFAST; // last set of LEDs
   }
 
   // Do the desired states.
