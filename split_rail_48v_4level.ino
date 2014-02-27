@@ -18,8 +18,10 @@
  * 1.13 - TS => D4Avg fix, 2400 baud
  * 1.14 - FF => Added CalcWattHours function, changing the Sign's data to Watt Hours, instead of Watts, in time for BMF VII
  * 1.15 - JS => started adding buck converter stuff 
- * 2.1 - JS => changed to split_rail_48v_4level, adding PWM for LED pedalometer, turning off buck converter and sign output*/
-char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility Box ver. 2.1";
+ * 2.1 - JS => changed to split_rail_48v_4level, adding PWM for LED pedalometer, turning off buck converter and sign output
+ * 2.15 - JS => fixed so white LEDs are solid before starting to blink at 50v, tuned relay voltages
+*/
+char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility Box ver. 2.15";
 
 // PINS
 #define RELAYPIN 2 // relay cutoff output pin // NEVER USE 13 FOR A RELAY
@@ -31,8 +33,8 @@ const int ledPins[NUM_LEDS] = {
   //  2, 3, 4, 5, 6, 7, 8};
 
 // levels at which each LED turns on (not including special states)
-const float ledLevels[NUM_LEDS] = {
-  24.0, 32.0, 40.0, 48.0};
+const float ledLevels[NUM_LEDS+1] = {
+  24.0, 32.0, 40.0, 48.0, 50.0};
 //  24.0, 28.0, 32.0, 36.0, 40.0, 44.0, 48.0};
 
 #define BRIGHTNESSVOLTAGE 24.0  // voltage at which LED brightness starts to fold back
@@ -72,8 +74,8 @@ int ledState[NUM_LEDS] = {
   STATE_OFF};
 
 // SPECIAL STATE
-#define MAX_VOLTS 50.0  //
-#define RECOVERY_VOLTS 40.0
+#define MAX_VOLTS 50.5  //
+#define RECOVERY_VOLTS 44.0
 int relayState = STATE_OFF;
 
 #define DANGER_VOLTS 52.0
@@ -359,9 +361,9 @@ void doLeds(){
     }
   }
 
-  // if at the top level, blink it fast
-  if (ledLevel == (NUM_LEDS-1)){
-    ledState[ledLevel] = STATE_BLINKFAST;
+  // if at the top voltage level, blink last LEDS fast
+  if (volts >= ledLevels[NUM_LEDS]) { // ledLevel == (NUM_LEDS-1)){
+    ledState[NUM_LEDS-1] = STATE_BLINKFAST; // last set of LEDs
   }
 
   // Do the desired states.
