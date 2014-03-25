@@ -20,21 +20,22 @@
  * 1.15 - JS => started adding buck converter stuff 
  * 2.1 - JS => changed to split_rail_48v_4level, adding PWM for LED pedalometer, turning off buck converter and sign output
  * 2.15 - JS => fixed so white LEDs are solid before starting to blink at 50v, tuned relay voltages
+ * 2.2 - JS => create branch 1b1i for onebike-oneinverter which buck converts up to 60V down to 12V for inverter
 */
-char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility Box ver. 2.15";
+char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility Box ver. 2.2 branch:1b1i";
 
 // PINS
 #define RELAYPIN 2 // relay cutoff output pin // NEVER USE 13 FOR A RELAY
 #define VOLTPIN A0 // Voltage Sensor Pin
 #define AMPSPIN A3 // Current Sensor Pin
 #define NUM_LEDS 4 // Number of LED outputs.
-const int ledPins[NUM_LEDS] = {
-  3, 9, 10, 11};
+const int ledPins[NUM_LEDS] = { // 12v LEDS POWERED BY ARBDUINO LM2576-HV
+  3, 5, 6, 11}; // pin 9 is used for buck converter
   //  2, 3, 4, 5, 6, 7, 8};
 
 // levels at which each LED turns on (not including special states)
 const float ledLevels[NUM_LEDS+1] = {
-  24.0, 32.0, 40.0, 48.0, 50.0};
+  34.0, 42.0, 50.0, 58.0, 62.0};
 //  24.0, 28.0, 32.0, 36.0, 40.0, 44.0, 48.0};
 
 #define BRIGHTNESSVOLTAGE 24.0  // voltage at which LED brightness starts to fold back
@@ -74,11 +75,11 @@ int ledState[NUM_LEDS] = {
   STATE_OFF};
 
 // SPECIAL STATE
-#define MAX_VOLTS 50.5  //
-#define RECOVERY_VOLTS 44.0
+#define MAX_VOLTS 60.0  //
+#define RECOVERY_VOLTS 54.0
 int relayState = STATE_OFF;
 
-#define DANGER_VOLTS 52.0
+#define DANGER_VOLTS 62.0
 int dangerState = STATE_OFF;
 
 int blinkState = 0;
@@ -142,9 +143,9 @@ void setup() {
   }
 
   timeDisplay = millis();
-  setPwmFrequency(3,1); // this sets the frequency of PWM on pins 3 and 11 to 31,250 Hz
-  setPwmFrequency(9,1); // this sets the frequency of PWM on pins 9 and 10 to 31,250 Hz
-  //  pinMode(9,OUTPUT); // this pin will control the transistors of the huge BUCK converter
+  // setPwmFrequency(3,1); // this sets the frequency of PWM on pins 3 and 11 to 31,250 Hz
+  // setPwmFrequency(9,1); // this sets the frequency of PWM on pins 9 and 10 to 31,250 Hz
+  pinMode(9,OUTPUT); // this pin will control the transistors of the huge BUCK converter
 }
 
 //int senseLevel = -1;
@@ -152,7 +153,8 @@ void setup() {
 void loop() {
   time = millis();
   getVolts();
-  //  doBuck(); // adjust inverter voltage
+  brightness = 255; // disable PWM for 12v LEDs powered by LM2576-HV arbduino regulator
+  doBuck(); // adjust inverter voltage
   doSafety();
   //  getAmps();  // only if we have a current sensor
   readCount++;
@@ -230,9 +232,9 @@ float D4average(){
   D4Avg = p3;
 }
 
-#define BUCK_CUTIN 13 // voltage above which transistors can start working
-#define BUCK_CUTOUT 11 // voltage below which transistors can not function
-#define BUCK_VOLTAGE 26.0 // target voltage for inverter to be supplied with
+#define BUCK_CUTIN 11 // voltage above which transistors can start working
+#define BUCK_CUTOUT 10 // voltage below which transistors can not function
+#define BUCK_VOLTAGE 13.0 // target voltage for inverter to be supplied with
 #define BUCK_VOLTPIN A1 // this pin measures inverter's MINUS TERMINAL voltage
 #define BUCK_HYSTERESIS 0.75 // volts above BUCK_VOLTAGE where we start regulatin
 #define BUCK_PWM_UPJUMP 0.03 // amount to raise PWM value if voltage is below BUCK_VOLTAGE
