@@ -144,7 +144,7 @@ void setup() {
 
   timeDisplay = millis();
   // setPwmFrequency(3,1); // this sets the frequency of PWM on pins 3 and 11 to 31,250 Hz
-  // setPwmFrequency(9,1); // this sets the frequency of PWM on pins 9 and 10 to 31,250 Hz
+  setPwmFrequency(9,1); // this sets the frequency of PWM on pins 9 and 10 to 31,250 Hz
   pinMode(9,OUTPUT); // this pin will control the transistors of the huge BUCK converter
 }
 
