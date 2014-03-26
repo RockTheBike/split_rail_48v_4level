@@ -20,16 +20,17 @@
  * 1.15 - JS => started adding buck converter stuff 
  * 2.1 - JS => changed to split_rail_48v_4level, adding PWM for LED pedalometer, turning off buck converter and sign output
  * 2.15 - JS => fixed so white LEDs are solid before starting to blink at 50v, tuned relay voltages
+ * 2.2 - JS => create branch 1b1i for onebike-oneinverter which buck converts up to 60V down to 12V for inverter
 */
-char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility Box ver. 2.15";
+char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility Box ver. 2.2 branch:1b1i";
 
 // PINS
 #define RELAYPIN 2 // relay cutoff output pin // NEVER USE 13 FOR A RELAY
 #define VOLTPIN A0 // Voltage Sensor Pin
 #define AMPSPIN A3 // Current Sensor Pin
 #define NUM_LEDS 4 // Number of LED outputs.
-const int ledPins[NUM_LEDS] = {
-  3, 9, 10, 11};
+const int ledPins[NUM_LEDS] = { // 12v LEDS POWERED BY ARBDUINO LM2576-HV
+  3, 5, 6, 11}; // pin 9 is used for buck converter
   //  2, 3, 4, 5, 6, 7, 8};
 
 // levels at which each LED turns on (not including special states)
@@ -142,9 +143,9 @@ void setup() {
   }
 
   timeDisplay = millis();
-  setPwmFrequency(3,1); // this sets the frequency of PWM on pins 3 and 11 to 31,250 Hz
+  // setPwmFrequency(3,1); // this sets the frequency of PWM on pins 3 and 11 to 31,250 Hz
   setPwmFrequency(9,1); // this sets the frequency of PWM on pins 9 and 10 to 31,250 Hz
-  //  pinMode(9,OUTPUT); // this pin will control the transistors of the huge BUCK converter
+  pinMode(9,OUTPUT); // this pin will control the transistors of the huge BUCK converter
 }
 
 //int senseLevel = -1;
