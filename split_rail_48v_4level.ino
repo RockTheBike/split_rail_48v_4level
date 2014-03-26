@@ -27,25 +27,26 @@
 char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility Box ver. 2.4 branch:decida";
 
 // PINS
+#define GROUNDPLUS 9 // HIGH on this pin shorts pedaller's plus to ground
+#define GROUNDMINUS 10 // LOW on this pin shorts pedaller's minus to ground
 #define RELAYPIN 2 // relay cutoff output pin // NEVER USE 13 FOR A RELAY
 #define VOLTPIN A0 // Voltage Sensor Pin
 #define MINUS_VOLTPIN A1 // this pin measures MINUSRAIL voltage
 #define AMPSPIN A3 // Current Sensor Pin
 #define NUM_LEDS 4 // Number of LED outputs.
-const int ledPins[NUM_LEDS] = { // 12v LEDS POWERED BY ARBDUINO LM2576-HV
-  3, 5, 6, 11}; // pin 9 is used for buck converter
+const int ledPins[NUM_LEDS] = { // 24v LEDS POWERED BY PLUSRAIL
+  3, 5, 6, 11}; // pin 9 and 10 are used by decida transistor banks
 
 // levels at which each LED turns on (not including special states)
-const float ledLevels[NUM_LEDS+1] = {
-  24.0, 32.0, 40.0, 48.0, 50.0};
+const float ledLevels[NUM_LEDS+1] = { // these refer to total system voltage
+  24.0, 32.0, 40.0, 47.0, 51.3}; // the last voltage is when all the LEDs will blink
 
 #define BRIGHTNESSVOLTAGE 24.0  // voltage at which LED brightness starts to fold back
 #define BRIGHTNESSBASE 255  // maximum brightness value (255 is max value here)
-int brightness = 0;  // analogWrite brightness value, updated by getVoltageAndBrightness()
+int brightness = 0;  // analogWrite brightness value, updated by getVolts()
 #define BRIGHTNESSFACTOR (BRIGHTNESSBASE / BRIGHTNESSVOLTAGE) / 2 // results in half PWM at double voltage
 // for every volt over BRIGHTNESSVOLTAGE, pwm is reduced by BRIGHTNESSFACTOR from BRIGHTNESSBASE
 
-// FAKE AC POWER VARIABLES
 #define KNOBPIN A2
 int knobAdc = 0;
 void doKnob(){ // look in calcWatts() to see if this is commented out
@@ -72,11 +73,13 @@ int analogState[NUM_LEDS] = {0}; // stores the last analogWrite() value for each
 int ledState[NUM_LEDS] = {
   STATE_OFF};
 
-#define MAX_VOLTS 50.5  //
-#define RECOVERY_VOLTS 44.0
+#define MAX_PLUSRAIL 27.0
+#define MAX_MINUSRAIL -24.3
+#define RELAY_HYSTERESIS 4.0 // how many volts of hysteresis to have
 int relayState = STATE_OFF;
 
-#define DANGER_VOLTS 52.0
+#define DANGER_PLUSRAIL 28.0 // 10*2.7=27 volt cap bank
+#define DANGER_MINUSRAIL -25.3 // 9*2.7=24.3 volt cap bank
 int dangerState = STATE_OFF;
 
 int blinkState = 0;
@@ -86,11 +89,11 @@ int fastBlinkState = 0;
 
 int voltsAdc = 0;
 float voltsAdcAvg = 0;
-float volts = 0;
+float volts = 0; // averaged A0 voltage PLUSRAIL
 
 int minusAdc = 0; // for measuring A1 voltage
 float minusAvg = 0; // for measuring A1 voltage
-float minus = 0; // averaged A1 voltage
+float minus = 0; // averaged A1 voltage MINUSRAIL
 
 //Current related variables
 int ampsAdc = 0;
@@ -126,7 +129,8 @@ void setup() {
   timeDisplay = millis();
   // setPwmFrequency(3,1); // this sets the frequency of PWM on pins 3 and 11 to 31,250 Hz
   setPwmFrequency(9,1); // this sets the frequency of PWM on pins 9 and 10 to 31,250 Hz
-  pinMode(9,OUTPUT); // this pin will control the transistors of the huge BUCK converter
+  pinMode(GROUNDPLUS,OUTPUT); //  HIGH on this pin shorts pedaller's plus to ground
+  pinMode(GROUNDMINUS,OUTPUT); // LOW on this pin shorts pedaller's minus to ground
 }
 
 void loop() {
@@ -212,17 +216,17 @@ void doBuck() {
 }
 */
 void doSafety() {
-  if (volts > MAX_VOLTS){
+  if ((volts > MAX_PLUSRAIL) || (minus < MAX_MINUSRAIL)){
     digitalWrite(RELAYPIN, HIGH);
     relayState = STATE_ON;
   }
 
-  if (relayState == STATE_ON && volts < RECOVERY_VOLTS){
+  if (relayState == STATE_ON && (volts < MAX_PLUSRAIL - RELAY_HYSTERESIS) && (minus > MAX_MINUSRAIL + RELAY_HYSTERESIS)){
     digitalWrite(RELAYPIN, LOW);
     relayState = STATE_OFF;
   }
 
-  if (volts > DANGER_VOLTS){
+  if ((volts > DANGER_PLUSRAIL) || (minus < DANGER_MINUSRAIL)){
     dangerState = STATE_ON;
   } 
   else {
@@ -255,8 +259,10 @@ void doBlink(){
 
 void doLeds(){
 
+  float totalVolts = volts - minus; // total system voltage
+
   for(i = 0; i < NUM_LEDS; i++) {
-    if(volts >= ledLevels[i]){
+    if(totalVolts >= ledLevels[i]){
       ledState[i]=STATE_ON;
     }
     else
@@ -264,23 +270,23 @@ void doLeds(){
   }
 
   // if voltage is below the lowest level, blink the lowest level
-  if (volts < ledLevels[0]){
+  if (totalVolts < ledLevels[0]){
     ledState[0]=STATE_BLINK;
   }
 
   // turn off first x levels if voltage is above 3rd level
-  if(volts > ledLevels[1]){
+  if(totalVolts > ledLevels[1]){
     ledState[0] = STATE_OFF;
 //    ledState[1] = STATE_OFF;
   }
 
-  if (dangerState){
+  if (dangerState){ // dangerState means one of the rails is too high
     for(i = 0; i < NUM_LEDS; i++) {
       ledState[i] = STATE_BLINKFAST;
     }
   }
 
-  if (volts >= ledLevels[NUM_LEDS]) {// if at the top voltage level, blink last LEDS fast
+  if (totalVolts >= ledLevels[NUM_LEDS]) {// if at the top voltage level, blink last LEDS fast
     ledState[NUM_LEDS-1] = STATE_BLINKFAST; // last set of LEDs
   }
 
