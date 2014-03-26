@@ -28,6 +28,7 @@ char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility B
 // PINS
 #define RELAYPIN 2 // relay cutoff output pin // NEVER USE 13 FOR A RELAY
 #define VOLTPIN A0 // Voltage Sensor Pin
+#define MINUS_VOLTPIN A1 // this pin measures MINUSRAIL voltage
 #define AMPSPIN A3 // Current Sensor Pin
 #define NUM_LEDS 4 // Number of LED outputs.
 const int ledPins[NUM_LEDS] = { // 12v LEDS POWERED BY ARBDUINO LM2576-HV
@@ -93,9 +94,9 @@ int voltsAdc = 0;
 float voltsAdcAvg = 0;
 float volts = 0;
 
-int voltsBuckAdc = 0; // for measuring A1 voltage
-float voltsBuckAvg = 0; // for measuring A1 voltage
-float voltsBuck = 0; // averaged A1 voltage
+int minusAdc = 0; // for measuring A1 voltage
+float minusAvg = 0; // for measuring A1 voltage
+float minus = 0; // averaged A1 voltage
 
 //Current related variables
 int ampsAdc = 0;
@@ -241,7 +242,7 @@ float D4average(){
 #define BUCK_PWM_DOWNJUMP 0.15 // amount to lower PWM value if voltage is too high
 float buckPWM = 0; // PWM value of pin 9
 int lastBuckPWM = 0; // make sure we don't call analogWrite if already set right
-
+/*
 void doBuck() {
   if (volts > BUCK_CUTIN) { // voltage is high enough to turn on transistors
     if (volts <= BUCK_VOLTAGE) { // system voltage is lower than inverter target voltage
@@ -287,7 +288,7 @@ void doBuck() {
     digitalWrite(9,LOW); // turn off transistors
   }
 }
-
+*/
 void doSafety() {
   if (volts > MAX_VOLTS){
     digitalWrite(RELAYPIN, HIGH);
@@ -421,9 +422,9 @@ void getVolts(){
   voltsAdcAvg = average(voltsAdc, voltsAdcAvg);
   volts = adc2volts(voltsAdcAvg);
 
-  voltsBuckAdc = analogRead(BUCK_VOLTPIN);
-  voltsBuckAvg = average(voltsBuckAdc, voltsBuckAvg);
-  voltsBuck = adc2volts(voltsBuckAvg);
+  minusAdc = analogRead(MINUS_VOLTPIN);
+  minusAvg = average(minusAdc, minusAvg);
+  minus = 5.0 - adc2volts(1023-minusAvg); // measuring the minus rail
 
   //  brightness = 255 - BRIGHTNESSBASE * (1.0 - (brightnessKnobFactor * (1023 - analogRead(knobpin))));  // the knob affects brightnes
 
