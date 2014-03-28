@@ -28,7 +28,9 @@ char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility B
 
 // PINS
 #define GROUNDPLUS 9 // HIGH on this pin shorts pedaller's plus to ground
+#define GROUNDPLUSACTIVATE true
 #define GROUNDMINUS 10 // LOW on this pin shorts pedaller's minus to ground
+#define GROUNDMINUSACTIVATE false
 #define RELAYPIN 2 // relay cutoff output pin // NEVER USE 13 FOR A RELAY
 #define VOLTPIN A0 // Voltage Sensor Pin
 #define MINUS_VOLTPIN A1 // this pin measures MINUSRAIL voltage
@@ -66,6 +68,15 @@ int analogState[NUM_LEDS] = {0}; // stores the last analogWrite() value for each
 int knobAdc = 0;
 int ledState[NUM_LEDS] = {STATE_OFF}; // on/off/blink/fastblink state of each led
 
+#define PLUSPEDAL 1
+#define MINUSPEDAL -1
+#define OPENPEDAL 0
+int decision = PLUSPEDAL; // which rail should pedalpower go into?
+
+#define RAILFULL 0.98 // how full is a rail before we decide it is full
+#define DECIDA_SWITCHTIME 500 // minimum time between switching rails to pedal
+
+#define MINIMUM_PLUSRAIL 22 // below this voltage, pedalling only goes to plusrail
 #define MAX_PLUSRAIL 27.0
 #define MAX_MINUSRAIL -24.3
 #define RELAY_HYSTERESIS 4.0 // how many volts of hysteresis to have
@@ -102,6 +113,7 @@ unsigned long timeFastBlink = 0;
 unsigned long timeBlink = 0;
 unsigned long timeDisplay = 0;
 unsigned long wattHourTimer = 0;
+unsigned long lastDecided = 0;
 
 // var for looping through arrays
 int i = 0;
@@ -124,13 +136,17 @@ void setup() {
   setPwmFrequency(9,1); // this sets the frequency of PWM on pins 9 and 10 to 31,250 Hz
   pinMode(GROUNDPLUS,OUTPUT); //  HIGH on this pin shorts pedaller's plus to ground
   pinMode(GROUNDMINUS,OUTPUT); // LOW on this pin shorts pedaller's minus to ground
-}
+} // GROUNDMINUS will default to LOW, which directs pedallers to plusrail which is good.
 
 void loop() {
   time = millis();
   getVolts();
   //  doBuck(); // adjust inverter voltage
-  doSafety();
+  doSafety(); // sets relay state and sets dangerState
+  if (time - lastDecided > DECIDA_SWITCHTIME) {
+    doDecide(); // decide which rail needs pedallers more
+    lastDecided = time; // reset time timeout
+  }
   //  getAmps();  // only if we have a current sensor
   //  calcWatts(); // also adds in knob value for extra wattage, unless commented out
 
@@ -150,6 +166,30 @@ void loop() {
     timeDisplay = time;
   }
 
+}
+
+void doDecide() {
+  float plusCentage = volts / MAX_PLUSRAIL; // how full is plusrail?
+  float minusCentage = minus / MAX_MINUSRAIL; // how full is minusrail?
+
+  decision = PLUSPEDAL; // default to plusrail
+  if ((volts > MINIMUM_PLUSRAIL) && (plusCentage > minusCentage)) {
+    decision = MINUSPEDAL; // pedal the minus rail now
+  }
+  if ((plusCentage > RAILFULL) && (minusCentage > RAILFULL)) {
+    decision = OPENPEDAL; // let pedalpower charge both rails
+  }
+
+  if (decision == MINUSPEDAL) {
+    digitalWrite(GROUNDPLUS,GROUNDPLUSACTIVATE); // ground the plusrail
+    digitalWrite(GROUNDMINUS,!GROUNDMINUSACTIVATE); // dont ground minusrail
+  } else if (decision == PLUSPEDAL) {
+    digitalWrite(GROUNDMINUS,GROUNDMINUSACTIVATE); // ground minusrail
+    digitalWrite(GROUNDPLUS,!GROUNDPLUSACTIVATE); // dont ground the plusrail
+  } else if (decision == OPENPEDAL) {
+    digitalWrite(GROUNDMINUS,!GROUNDMINUSACTIVATE); // dont ground minusrail
+    digitalWrite(GROUNDPLUS,!GROUNDPLUSACTIVATE); // dont ground the plusrail
+  }
 }
 
 #define BUCK_CUTIN 13 // voltage above which transistors can start working
