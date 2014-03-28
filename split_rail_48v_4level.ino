@@ -33,6 +33,7 @@ char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility B
 #define VOLTPIN A0 // Voltage Sensor Pin
 #define MINUS_VOLTPIN A1 // this pin measures MINUSRAIL voltage
 #define AMPSPIN A3 // Current Sensor Pin
+#define KNOBPIN A2
 #define NUM_LEDS 4 // Number of LED outputs.
 const int ledPins[NUM_LEDS] = { // 24v LEDS POWERED BY PLUSRAIL
   3, 5, 6, 11}; // pin 9 and 10 are used by decida transistor banks
@@ -46,13 +47,6 @@ const float ledLevels[NUM_LEDS+1] = { // these refer to total system voltage
 int brightness = 0;  // analogWrite brightness value, updated by getVolts()
 #define BRIGHTNESSFACTOR (BRIGHTNESSBASE / BRIGHTNESSVOLTAGE) / 2 // results in half PWM at double voltage
 // for every volt over BRIGHTNESSVOLTAGE, pwm is reduced by BRIGHTNESSFACTOR from BRIGHTNESSBASE
-
-#define KNOBPIN A2
-int knobAdc = 0;
-void doKnob(){ // look in calcWatts() to see if this is commented out
-  knobAdc = analogRead(KNOBPIN) - 10; // make sure not to add if knob is off
-  if (knobAdc < 0) knobAdc = 0; // values 0-10 count as zero
-}
 
 int analogState[NUM_LEDS] = {0}; // stores the last analogWrite() value for each LED
                                  // so we don't analogWrite unnecessarily!
@@ -69,9 +63,8 @@ int analogState[NUM_LEDS] = {0}; // stores the last analogWrite() value for each
 #define STATE_BLINKFAST 3
 #define STATE_ON 2
 
-// on/off/blink/fastblink state of each led
-int ledState[NUM_LEDS] = {
-  STATE_OFF};
+int knobAdc = 0;
+int ledState[NUM_LEDS] = {STATE_OFF}; // on/off/blink/fastblink state of each led
 
 #define MAX_PLUSRAIL 27.0
 #define MAX_MINUSRAIL -24.3
@@ -407,6 +400,11 @@ void printDisplay(){
   //  }
   //  Serial.println("");
   // Serial.println();
+}
+
+void doKnob(){ // look in calcWatts() to see if this is commented out
+  knobAdc = analogRead(KNOBPIN) - 10; // make sure not to add if knob is off
+  if (knobAdc < 0) knobAdc = 0; // values 0-10 count as zero
 }
 
 void setPwmFrequency(int pin, int divisor) {
