@@ -23,20 +23,22 @@
  * 2.2 - JS => create branch 1b1i for onebike-oneinverter which buck converts up to 60V down to 12V for inverter
  * 2.3 - JS => create branch decida for split-rail system with automatic rail selection for pedallers (see decida.xcf)
  * 2.4 - JS => rip out a bunch of stuff that we haven't used in a long time
+ * 2.5 - JS => create branch sledge for ten-line sLEDgehammer pedalpower lightshow reactor
 */
-char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility Box ver. 2.4";
+char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility Box ver. 2.5 branch:sledge";
 
 // PINS
 #define RELAYPIN 2 // relay cutoff output pin // NEVER USE 13 FOR A RELAY
 #define VOLTPIN A0 // Voltage Sensor Pin
 #define AMPSPIN A3 // Current Sensor Pin
-#define NUM_LEDS 4 // Number of LED outputs.
+#define NUM_LEDS 10 // Number of LED outputs.
 const int ledPins[NUM_LEDS] = {
-  3, 9, 10, 11};
+  3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
 
 // levels at which each LED turns on (not including special states)
 const float ledLevels[NUM_LEDS+1] = {
-  24.0, 32.0, 40.0, 48.0, 50.0};
+  24.0, 24.1, 24.2, 24.3, 24.4, 24.5, 24.6, 24.7, 24.8, 24.9 };
+//  24.0, 32.0, 40.0, 48.0, 50.0};
 
 #define BRIGHTNESSVOLTAGE 24.0  // voltage at which LED brightness starts to fold back
 #define BRIGHTNESSBASE 255  // maximum brightness value (255 is max value here)
@@ -123,8 +125,8 @@ void setup() {
   }
 
   timeDisplay = millis();
-  setPwmFrequency(3,1); // this sets the frequency of PWM on pins 3 and 11 to 31,250 Hz
-  setPwmFrequency(9,1); // this sets the frequency of PWM on pins 9 and 10 to 31,250 Hz
+//  setPwmFrequency(3,1); // this sets the frequency of PWM on pins 3 and 11 to 31,250 Hz
+//  setPwmFrequency(9,1); // this sets the frequency of PWM on pins 9 and 10 to 31,250 Hz
   //  pinMode(9,OUTPUT); // this pin will control the transistors of the huge BUCK converter
 }
 
