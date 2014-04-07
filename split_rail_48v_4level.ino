@@ -47,7 +47,7 @@ int brightness = 0;  // analogWrite brightness value, updated by getVoltageAndBr
 // for every volt over BRIGHTNESSVOLTAGE, pwm is reduced by BRIGHTNESSFACTOR from BRIGHTNESSBASE
 
 // FAKE AC POWER VARIABLES
-#define KNOBPIN A2
+#define KNOBPIN A4
 int knobAdc = 0;
 void doKnob(){ // look in calcWatts() to see if this is commented out
   knobAdc = analogRead(KNOBPIN) - 10; // make sure not to add if knob is off
@@ -73,8 +73,8 @@ int analogState[NUM_LEDS] = {0}; // stores the last analogWrite() value for each
 int ledState[NUM_LEDS] = {
   STATE_OFF};
 
-#define MAX_VOLTS 50.5  //
-#define RECOVERY_VOLTS 44.0
+#define MAX_VOLTS 25.5  //
+#define RECOVERY_VOLTS 24.0
 int relayState = STATE_OFF;
 
 #define DANGER_VOLTS 52.0
@@ -133,6 +133,7 @@ void setup() {
 void loop() {
   time = millis();
   getVolts();
+  fakeVoltage(); // adjust voltage according to knob
   //  doBuck(); // adjust inverter voltage
   doSafety();
   //  getAmps();  // only if we have a current sensor
@@ -155,6 +156,12 @@ void loop() {
   }
 
 }
+
+#define FAKEDIVISOR 3069 // 2046 allows doubling of voltage, 3069 allows 50% increase, etc..
+float fakeVoltage() {
+  doKnob(); // read knob value into knobAdc
+  return volts / ( (FAKEDIVISOR - knobAdc) / FAKEDIVISOR); // turning knob up returns higher voltage
+} // if knob is all the way down, voltage is returned unchanged
 
 #define BUCK_CUTIN 13 // voltage above which transistors can start working
 #define BUCK_CUTOUT 11 // voltage below which transistors can not function
