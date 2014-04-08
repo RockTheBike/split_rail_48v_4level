@@ -37,7 +37,7 @@ const int ledPins[NUM_LEDS] = {
 
 // levels at which each LED turns on (not including special states)
 const float ledLevels[NUM_LEDS+1] = {
-  24.0, 24.1, 24.2, 24.3, 24.4, 24.5, 24.6, 24.7, 24.8, 24.9 };
+  14, 16, 18, 19, 20, 21, 22, 22.5, 23.25, 24, 0 }; // last value unused in sledge
 //  24.0, 32.0, 40.0, 48.0, 50.0};
 
 #define BRIGHTNESSVOLTAGE 24.0  // voltage at which LED brightness starts to fold back
@@ -88,6 +88,13 @@ int fastBlinkState = 0;
 int voltsAdc = 0;
 float voltsAdcAvg = 0;
 float volts = 0;
+
+#define IDLING 0 // haven't been pedaled yet, or after draining is over
+#define CHARGING 1 // someone is pedalling, at least not letting voltage fall
+#define FAILING 2 // voltage has fallen in the past 30 seconds, so we drain
+#define VICTORY 3 // the winning display is activated until we're drained
+
+int situation = IDLING; // what is the system doing?
 
 int voltsBuckAdc = 0; // for measuring A1 voltage
 float voltsBuckAvg = 0; // for measuring A1 voltage
@@ -157,7 +164,7 @@ void loop() {
 
 }
 
-#define FAKEDIVISOR 3069 // 2046 allows doubling of voltage, 3069 allows 50% increase, etc..
+#define FAKEDIVISOR 3039 // 2026 allows doubling of voltage, 3039 allows 50% increase, etc..
 float fakeVoltage() {
   doKnob(); // read knob value into knobAdc
   return volts / ( (FAKEDIVISOR - knobAdc) / FAKEDIVISOR); // turning knob up returns higher voltage
@@ -261,6 +268,23 @@ void doBlink(){
 
 }
 
+/*
+1. advance from voltage level 1 to 10, each time turning on more stripes of
+light. Here are the voltage targets: 14,16,18, 19, 20, 21, 22, 22.5, 23.25, 24
+2. If the person gets to level 10 and holds it for more than 3 seconds, do
+the reward sequence.
+3. Reward: bottom to top with 0.1S intervals 3 times, then ALL ON to get rid
+of the power and bring it back down so it's ready for the next pedaler.
+4. We will use a difficulty knob. The Voltish concept worked well in the
+past. All the way left means a 30% reduction in voltage targets. I need to
+know how to wire it.
+5. We will possibly need to implement some type of averaging or hysteresis
+so it someone is out of the saddle pedaling, the lights don't pulse to their
+pedaling.
+* if the voltage doesn't increase for 30 seconds, turn on the halogens to
+  drain the patient to 12v
+*/
+
 void doLeds(){
 
   for(i = 0; i < NUM_LEDS; i++) {
@@ -296,8 +320,8 @@ void doLeds(){
 
   for(i = 0; i < NUM_LEDS; i++) {
     if(ledState[i]==STATE_ON){
-      //      digitalWrite(ledPins[i], HIGH);
-      if (analogState[i] != brightness) analogWrite(ledPins[i], brightness); // don't analogWrite unnecessarily!
+      digitalWrite(ledPins[i], HIGH);
+      //      if (analogState[i] != brightness) analogWrite(ledPins[i], brightness); // don't analogWrite unnecessarily!
       analogState[i] = brightness;
     }
     else if (ledState[i]==STATE_OFF){
@@ -305,8 +329,8 @@ void doLeds(){
       analogState[i] = 0;
     }
     else if (ledState[i]==STATE_BLINK && blinkState==1){
-      //      digitalWrite(ledPins[i], HIGH);
-      if (analogState[i] != brightness) analogWrite(ledPins[i], brightness); // don't analogWrite unnecessarily!
+      digitalWrite(ledPins[i], HIGH);
+      //      if (analogState[i] != brightness) analogWrite(ledPins[i], brightness); // don't analogWrite unnecessarily!
       analogState[i] = brightness;
     }
     else if (ledState[i]==STATE_BLINK && blinkState==0){
@@ -314,8 +338,8 @@ void doLeds(){
       analogState[i] = 0;
     }
     else if (ledState[i]==STATE_BLINKFAST && fastBlinkState==1){
-      //      digitalWrite(ledPins[i], HIGH);
-      if (analogState[i] != brightness) analogWrite(ledPins[i], brightness); // don't analogWrite unnecessarily!
+      digitalWrite(ledPins[i], HIGH);
+      //      if (analogState[i] != brightness) analogWrite(ledPins[i], brightness); // don't analogWrite unnecessarily!
       analogState[i] = brightness;
     }
     else if (ledState[i]==STATE_BLINKFAST && fastBlinkState==0){
