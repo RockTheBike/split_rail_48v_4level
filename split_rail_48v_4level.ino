@@ -96,6 +96,14 @@ float volts = 0;
 
 int situation = IDLING; // what is the system doing?
 
+#define WINTIME 3000 // how many milliseconds you need to be at top level before you win
+#define LOSESECONDS 30 // how many seconds ago your voltage is compared to see if you gave up
+#define VRSIZE 40 // must be greater than LOSESECONDS but not big enough to use up too much RAM
+
+float voltRecord[VRSIZE] = { 0 }; // we store voltage here once per second
+int vRIndex = 0; // keep track of where we store voltage next
+unsigned long vRTime = 0; // last time we stored a voltRecord
+
 int voltsBuckAdc = 0; // for measuring A1 voltage
 float voltsBuckAvg = 0; // for measuring A1 voltage
 float voltsBuck = 0; // averaged A1 voltage
@@ -114,6 +122,8 @@ unsigned long timeFastBlink = 0;
 unsigned long timeBlink = 0;
 unsigned long timeDisplay = 0;
 unsigned long wattHourTimer = 0;
+unsigned long victoryTime = 0; // how long it's been since we declared victory
+unsigned long topLevelTime = 0; // how long we've been at top voltage level
 
 // var for looping through arrays
 int i = 0;
@@ -132,6 +142,7 @@ void setup() {
   }
 
   timeDisplay = millis();
+  vRTime = timeDisplay; // initialize vRTime since it's a once-per-second thing
 //  setPwmFrequency(3,1); // this sets the frequency of PWM on pins 3 and 11 to 31,250 Hz
 //  setPwmFrequency(9,1); // this sets the frequency of PWM on pins 9 and 10 to 31,250 Hz
   //  pinMode(9,OUTPUT); // this pin will control the transistors of the huge BUCK converter
@@ -141,6 +152,32 @@ void loop() {
   time = millis();
   getVolts();
   fakeVoltage(); // adjust voltage according to knob
+
+  if (time - vRTime > 1000) { // we do this once per second exactly
+    vRTime += 1000; // add a second to the timer index
+    voltRecord[vRIndex++] = volts; // store the value
+    if (vRIndex >= VRSIZE) vRIndex = 0; // wrap the counter if necessary
+  }
+
+  if (volts < 12) {
+    situation = IDLING;
+  } else {
+    float voltsBefore = voltRecord[(vRIndex + VRSIZE - LOSESECONDS) % VRSIZE]; // voltage LOSESECONDS ago
+    if (situation != VICTORY) { // if we're not in VICTORY mode...
+      if (volts < voltsBefore) { // if voltage has fallen
+	situation = FAILING; // forget it, you lose
+      } else { // otherwise voltage must be rising so what can we do?
+	situation = IDLING; // well if you start pedalling again i guess we're on again...
+      }
+    }
+  }
+
+  if (volts < ledLevels[NUM_LEDS]) topLevelTime = time; // reset timer unless you're at top level
+  if (time - topLevelTime > WINTIME) { // it's been WINTIME milliseconds of solid top-level action!
+    if (situation != VICTORY) victoryTime = time; // record the start time of victory
+    situation = VICTORY;
+  }
+
   //  doBuck(); // adjust inverter voltage
   doSafety();
   //  getAmps();  // only if we have a current sensor
