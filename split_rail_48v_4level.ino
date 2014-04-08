@@ -77,7 +77,7 @@ int ledState[NUM_LEDS] = {
 #define RECOVERY_VOLTS 24.0
 int relayState = STATE_OFF;
 
-#define DANGER_VOLTS 52.0
+#define DANGER_VOLTS 26.0
 int dangerState = STATE_OFF;
 
 int blinkState = 0;
@@ -297,23 +297,46 @@ void doLeds(){
 
   // if voltage is below the lowest level, blink the lowest level
   if (volts < ledLevels[0]){
-    ledState[0]=STATE_BLINK;
+    // ledState[0]=STATE_BLINK;
   }
 
   // turn off first x levels if voltage is above 3rd level
   if(volts > ledLevels[1]){
-    ledState[0] = STATE_OFF;
+    // ledState[0] = STATE_OFF;
 //    ledState[1] = STATE_OFF;
   }
 
   if (dangerState){
     for(i = 0; i < NUM_LEDS; i++) {
-      ledState[i] = STATE_BLINKFAST;
+      ledState[i] = STATE_ON; // try to keep the voltage down
     }
   }
 
   if (volts >= ledLevels[NUM_LEDS]) {// if at the top voltage level, blink last LEDS fast
-    ledState[NUM_LEDS-1] = STATE_BLINKFAST; // last set of LEDs
+//     ledState[NUM_LEDS-1] = STATE_BLINKFAST; // last set of LEDs
+  }
+
+  if (situation == VICTORY) { // assuming victory is not over
+    for (i = 0; i < NUM_LEDS; i++) {
+      ledState[i]=STATE_OFF; // turn them all off
+    }
+    ledState[((time - victoryTime) % 1000) / 100]=STATE_ON; // turn on one at a time, bottom to top, 0.1 seconds each
+  }
+
+  if ((situation == VICTORY) && (time - victoryTime > 3000)) { // victory is over
+    for (i = 0; i < NUM_LEDS; i++) {
+      ledState[i]=STATE_ON; // turn them all on
+    }
+  }
+
+  if (situation == FAILING) {
+    for (i = 0; i < NUM_LEDS; i++) {
+      if (i > 6) {  // WHICH LEVELS ARE ON DURING FAILING / DRAINING
+        ledState[i]=STATE_ON;
+      } else {
+        ledState[i]=STATE_OFF;
+      }
+    }
   }
 
   // loop through each led and turn on/off or adjust PWM
