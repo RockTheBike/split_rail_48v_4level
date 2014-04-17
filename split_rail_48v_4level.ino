@@ -33,7 +33,7 @@ char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility B
 #define AMPSPIN A3 // Current Sensor Pin
 #define NUM_LEDS 10 // Number of LED outputs.
 const int ledPins[NUM_LEDS] = {
-  3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+  3, 4, 5, 6, 7, 8, 9, 12, 11, 10};
 
 // levels at which each LED turns on (not including special states)
 const float ledLevels[NUM_LEDS+1] = {
@@ -93,6 +93,9 @@ float volts = 0;
 #define CHARGING 1 // someone is pedalling, at least not letting voltage fall
 #define FAILING 2 // voltage has fallen in the past 30 seconds, so we drain
 #define VICTORY 3 // the winning display is activated until we're drained
+#define PLAYING 4 // the winning display is activated until we're drained
+#define JUSTBEGAN 5
+
 
 int situation = IDLING; // what is the system doing?
 
@@ -112,10 +115,11 @@ float voltsBuck = 0; // averaged A1 voltage
 int ampsAdc = 0;
 float ampsAdcAvg = 0;
 float amps = 0;
+float volts2SecondsAgo = 0;
 
 float watts = 0;
 float wattHours = 0;
-
+float voltsBefore = 0;
 // timing variables for various processes: led updates, print, blink, etc
 unsigned long time = 0;
 unsigned long timeFastBlink = 0;
@@ -124,7 +128,9 @@ unsigned long timeDisplay = 0;
 unsigned long wattHourTimer = 0;
 unsigned long victoryTime = 0; // how long it's been since we declared victory
 unsigned long topLevelTime = 0; // how long we've been at top voltage level
-
+unsigned long timefailurestarted = 0;
+unsigned long timeArbduinoTurnedOn = 0;
+int timeSinceVoltageBeganFalling = 0;
 // var for looping through arrays
 int i = 0;
 
@@ -139,9 +145,11 @@ void setup() {
   // init LED pins
   for(i = 0; i < NUM_LEDS; i++) {
     pinMode(ledPins[i],OUTPUT);
+      digitalWrite(i,LOW);
   }
-
+  situation = JUSTBEGAN;
   timeDisplay = millis();
+  timeArbduinoTurnedOn = timeDisplay;
   vRTime = timeDisplay; // initialize vRTime since it's a once-per-second thing
 //  setPwmFrequency(3,1); // this sets the frequency of PWM on pins 3 and 11 to 31,250 Hz
 //  setPwmFrequency(9,1); // this sets the frequency of PWM on pins 9 and 10 to 31,250 Hz
@@ -151,42 +159,203 @@ void setup() {
 void loop() {
   time = millis();
   getVolts();
+  doSafety();
   fakeVoltage(); // adjust voltage according to knob
 
+
+/*
+Situation is either:
+IDLING
+PLAYING
+FAILING
+(LEVEL 10)
+VICTORY DANCE
+DANCE OVER
+HARD RESET
+
+IDLING only goes to PLAYING if volts increases by a real amount indicating pedaling
+
+PLAYING goes to FAILING if voltage keeps falling for at least 30 seconds
+
+PLAYING goes to VICTORY DANCE if volts >= win voltage with all lights on for 3 seconds
+
+FAILING always goes to IDLING before PLAYING. Lift relay after 15 seconds!
+
+VICTORY goes to FAILING after light sequence
+
+You know you're IDLING if volts < 14 and haven't risen and not PLAYING
+
+You know you're PLAYING if volts have risen significantly.
+
+You know you're FAILING if someone set it to FAILING
+
+Ways to improve:
+When someone gives up and the knob is easy, the volts falls slowly. then the game never resets. we need 'time since pedaling.'
+
+
+
+*/
+
   if (time - vRTime > 1000) { // we do this once per second exactly
-    vRTime += 1000; // add a second to the timer index
-    voltRecord[vRIndex++] = volts; // store the value
-    if (vRIndex >= VRSIZE) vRIndex = 0; // wrap the counter if necessary
-  }
-
-  if (volts < 12) {
-    situation = IDLING;
-  } else {
-    float voltsBefore = voltRecord[(vRIndex + VRSIZE - LOSESECONDS) % VRSIZE]; // voltage LOSESECONDS ago
-    if (situation != VICTORY) { // if we're not in VICTORY mode...
-      if (volts < voltsBefore) { // if voltage has fallen
-	situation = FAILING; // forget it, you lose
-      } else { // otherwise voltage must be rising so what can we do?
-	situation = IDLING; // well if you start pedalling again i guess we're on again...
+  if(situation == JUSTBEGAN){
+     if (time-timeArbduinoTurnedOn > 2200) situation = IDLING;
+   }
+//   || (volts - volts2SecondsAgo) < 0.03 || (volts2SecondsAgo - volts) < 0.03
+    if ( volts <= volts2SecondsAgo) { // stuck or slow drift
+        timeSinceVoltageBeganFalling++;
+  //   Serial.print("Voltage has been falling for ");
+    //     Serial.print(timeSinceVoltageBeganFalling);
+     //  Serial.println(" seconds.");
+      } else {
+        timeSinceVoltageBeganFalling = 0;
       }
-    }
+        Serial.print("Volts: ");
+        Serial.print(volts);
+
+      Serial.print("Voltage has been flat or falling for ");
+         Serial.print(timeSinceVoltageBeganFalling);
+       Serial.print(" seconds. & volts2Secondsago = ");
+        Serial.println(volts2SecondsAgo);
+
+
+  // Serial.println("hello");
+    vRTime += 1000; // add a second to the timer index
+    voltRecord[vRIndex] = volts; // store the value. JAKE doing vRIndex++ didn't work. needed to be on two separate lines.
+  /*  Serial.print("voltRecord current entry: ");
+    Serial.print(voltRecord[vRIndex]);
+    Serial.print(", vRIndex: ");
+    Serial.println(vRIndex); */
+    vRIndex++;
+    if (vRIndex >= VRSIZE) vRIndex = 0; // wrap the counter if necessary
+// What's the situation?
+  /*     Serial.print("volts: ");
+    Serial.print(volts);
+     Serial.print(", voltRecord[(vRIndex-2)]: ");
+    Serial.print(voltRecord[(vRIndex-2)]);
+         Serial.print(", voltRecord[(vRIndex - 1)]=");
+    Serial.print(voltRecord[(vRIndex - 1)]);
+      Serial.print(", vRIndex");
+    Serial.print(vRIndex);
+          Serial.print(", voltsBefore: ");
+    Serial.println(voltsBefore); */
+
+  }
+// if just began don't change from idling yet.
+if (situation == JUSTBEGAN) {
+  Serial.println("Just Began");
+  //  Serial.println(volts);
+
+  }
+// Am I idling?
+
+if (volts < 13.5 && situation == FAILING ){
+ situation = IDLING; //FAILING worked! we brought the voltage back to under 14.
+   Serial.print("got to IDLING 1");
+   // Serial.println(volts);
+
+   delay(2000);
+        digitalWrite(RELAYPIN, LOW);
+    relayState = STATE_OFF;
+    Serial.println("RELAY STATE CHANGED");
   }
 
-  if (volts < ledLevels[NUM_LEDS]) topLevelTime = time; // reset timer unless you're at top level
-  if (time - topLevelTime > WINTIME) { // it's been WINTIME milliseconds of solid top-level action!
+
+
+if (volts < 12 && situation != PLAYING && situation != JUSTBEGAN) {
+    situation = IDLING;
+ //   Serial.print("IDLING, volts=");
+  //  Serial.println(volts);
+
+  }
+
+// Serial.print("
+
+
+volts2SecondsAgo =  voltRecord[(vRIndex + VRSIZE - 2) % VRSIZE]; // voltage LOSESECONDS ago
+ // Serial.print("Volts 2 seconds ago.");
+//Serial.println (volts2SecondsAgo);
+// Check for PLAYING . PLAYING is when you were IDLING but now you're PLAYING.
+
+if (situation==IDLING){
+//   Serial.print("IDLING, check for PLAYING.");
+//  Serial.println (volts - voltRecord[(vRIndex-2)]);
+
+  if (volts - volts2SecondsAgo > 0.4){ // need to get past startup sequences
+
+ Serial.print("Volts 2 seconds ago: ");
+Serial.print (volts2SecondsAgo);
+ Serial.print(", volts: ");
+Serial.print (volts);
+
+//   Serial.println ("hey");
+    situation = PLAYING;
+   timeSinceVoltageBeganFalling = 0;
+    voltsBefore = volts;
+    resetVoltRecord();
+    Serial.println("got to PLAYING 1");// pedaling has begun in earnest
+
+  }
+   /*
+if (situation=IDLING && (volts - voltRecord[(vRIndex-2)] > 0.2)){ //JAKE why didn't this AND statement work?
+}*/
+
+}
+
+
+if (situation != VICTORY && situation == PLAYING) { // if we're not in VICTORY mode...
+
+      voltsBefore =  voltRecord[(vRIndex + VRSIZE - LOSESECONDS) % VRSIZE]; // voltage LOSESECONDS ago
+
+      if (timeSinceVoltageBeganFalling > 15) {
+              Serial.println("Got to Failing. Voltage has been falling for 15 seconds. ");
+
+           situation=FAILING;
+      } else if ((voltsBefore - volts) > 3) { // if voltage has fallen but they haven't given up
+       Serial.print("voltsBefore: ");
+         Serial.println(voltsBefore);
+  //     Serial.print("volts before: ");
+   //    Serial.println(voltsBefore);
+	situation = FAILING; // forget it, you lose
+  Serial.println("got to FAILING 2");
+       timefailurestarted = time;
+
+      }
+
+ //     else { // otherwise voltage must be rising so what can we do?
+//	situation = IDLING; // well if you start pedalling again i guess we're on again...
+  //    }
+
+    }
+ // }
+
+  if (volts < ledLevels[NUM_LEDS-1]){
+      topLevelTime = time; // reset timer unless you're at top level
+//  Serial.println(topLevelTime);
+}
+
+/*if (volts >= ledLevels[NUM_LEDS - 1]){
+    Serial.print("Got to level LEVEL 10");
+ //   Serial.println(volts);
+};*/
+
+  if (situation == PLAYING && time - topLevelTime > WINTIME && volts >= ledLevels[NUM_LEDS - 1]) { // it's been WINTIME milliseconds of solid top-level action!
+
     if (situation != VICTORY) victoryTime = time; // record the start time of victory
     situation = VICTORY;
+   Serial.print("got to VICTORY 1");
+ //   Serial.println(volts);
+
   }
 
   //  doBuck(); // adjust inverter voltage
-  doSafety();
+  // doSafety();
   //  getAmps();  // only if we have a current sensor
   //  calcWatts(); // also adds in knob value for extra wattage, unless commented out
 
   //  if it's been at least 1/4 second since the last time we measured Watt Hours...
   /*  if (time - wattHourTimer >= 250) {
    calcWattHours();
-   wattHourTimer = time; // reset the integrator    
+   wattHourTimer = time; // reset the integrator
    }
   */
   doBlink();  // blink the LEDs
@@ -195,16 +364,22 @@ void loop() {
   if(time - timeDisplay > DISPLAY_INTERVAL){
     // printWatts();
     //    printWattHours();
-    printDisplay();
+  //  printDisplay();
     timeDisplay = time;
   }
 
+
 }
 
-#define FAKEDIVISOR 3039 // 2026 allows doubling of voltage, 3039 allows 50% increase, etc..
+#define FAKEDIVISOR 2800 // 2026 allows doubling of voltage, 3039 allows 50% increase, etc..
 float fakeVoltage() {
   doKnob(); // read knob value into knobAdc
-  return volts / ( (FAKEDIVISOR - knobAdc) / FAKEDIVISOR); // turning knob up returns higher voltage
+  float multiplier = (float)FAKEDIVISOR / (float)(FAKEDIVISOR - knobAdc);
+//  Serial.println(multiplier); // just for debugging
+  volts = volts * multiplier; // turning knob up returns higher voltage
+
+  // JAKE -- research how to do 'return'. It wasn't working so I changed to the volts = ... above.
+
 } // if knob is all the way down, voltage is returned unchanged
 
 #define BUCK_CUTIN 13 // voltage above which transistors can start working
@@ -217,69 +392,13 @@ float fakeVoltage() {
 float buckPWM = 0; // PWM value of pin 9
 int lastBuckPWM = 0; // make sure we don't call analogWrite if already set right
 
-void doBuck() {
-  if (volts > BUCK_CUTIN) { // voltage is high enough to turn on transistors
-    if (volts <= BUCK_VOLTAGE) { // system voltage is lower than inverter target voltage
-      digitalWrite(9,HIGH); // turn transistors fully on, give full voltage to inverter
-      buckPWM = 0;
+
+void  resetVoltRecord() {
+
+   for(i = 0; i < VRSIZE; i++) {
+    voltRecord[i] = volts;
     }
 
-    if ((volts > BUCK_VOLTAGE+BUCK_HYSTERESIS) && (buckPWM == 0)) { // begin PWM action
-      buckPWM = 255.0 * (1.0 - ((volts - BUCK_VOLTAGE) / BUCK_VOLTAGE)); // best guess for initial PWM value
-      //      Serial.print("buckval=");
-      //      Serial.println(buckPWM);
-      analogWrite(9,(int) buckPWM); // actually set the thing in motion
-    }
-
-    if ((volts > BUCK_VOLTAGE) && (buckPWM != 0)) { // adjust PWM value based on results
-      if (volts - voltsBuck > BUCK_VOLTAGE + BUCK_HYSTERESIS) { // inverter voltage is too high
-        buckPWM -= BUCK_PWM_DOWNJUMP; // reduce PWM value to reduce inverter voltage
-        if (buckPWM <= 0) {
-          //          Serial.print("0");
-          buckPWM = 1; // minimum PWM value
-        }
-        if (lastBuckPWM != (int) buckPWM) { // only if the PWM value has changed should we...
-          lastBuckPWM = (int) buckPWM;
-          //          Serial.print("-");
-          analogWrite(9,lastBuckPWM); // actually set the PWM value
-        }
-      }
-      if (volts - voltsBuck < BUCK_VOLTAGE) { // inverter voltage is too low
-        buckPWM += BUCK_PWM_UPJUMP; // increase PWM value to raise inverter voltage
-        if (buckPWM > 255.0) {
-          buckPWM = 255.0;
-          //          Serial.print("X");
-        }
-        if (lastBuckPWM != (int) buckPWM) { // only if the PWM value has changed should we...
-          lastBuckPWM = (int) buckPWM;
-          //          Serial.print("+");
-          analogWrite(9,lastBuckPWM); // actually set the PWM value
-        }
-      }
-    }
-  } 
-  if (volts < BUCK_CUTOUT) { // system voltage is too low for transistors
-    digitalWrite(9,LOW); // turn off transistors
-  }
-}
-
-void doSafety() {
-  if (volts > MAX_VOLTS){
-    digitalWrite(RELAYPIN, HIGH);
-    relayState = STATE_ON;
-  }
-
-  if (relayState == STATE_ON && volts < RECOVERY_VOLTS){
-    digitalWrite(RELAYPIN, LOW);
-    relayState = STATE_OFF;
-  }
-
-  if (volts > DANGER_VOLTS){
-    dangerState = STATE_ON;
-  } 
-  else {
-    dangerState = STATE_OFF;
-  }
 }
 
 void doBlink(){
@@ -354,27 +473,65 @@ void doLeds(){
   }
 
   if (situation == VICTORY) { // assuming victory is not over
-    for (i = 0; i < NUM_LEDS; i++) {
-      ledState[i]=STATE_OFF; // turn them all off
+
+    //  Serial.print("VICTORY, volts=");
+     // Serial.println(volts);
+
+  if (time - victoryTime <= 3000){
+    for (i = 0; i < NUM_LEDS - 1; i++) {
+      ledState[i]=STATE_OFF; // turn them all off but the top one, which helps keep it from suddenly feeling easy.
     }
     ledState[((time - victoryTime) % 1000) / 100]=STATE_ON; // turn on one at a time, bottom to top, 0.1 seconds each
-  }
+    } else { // 1st victory sequence is over
 
-  if ((situation == VICTORY) && (time - victoryTime > 3000)) { // victory is over
-    for (i = 0; i < NUM_LEDS; i++) {
-      ledState[i]=STATE_ON; // turn them all on
-    }
-  }
 
-  if (situation == FAILING) {
-    for (i = 0; i < NUM_LEDS; i++) {
-      if (i > 6) {  // WHICH LEVELS ARE ON DURING FAILING / DRAINING
-        ledState[i]=STATE_ON;
-      } else {
-        ledState[i]=STATE_OFF;
+    turnThemOffOneAtATime();
+    //delay(3000);
+ //  ledState[NUM_LEDS - ((time - victoryTime - 3000) % 1000) / 100] = STATE_OFF; // turn OFF one at a time, top to bottom, 0.2 seconds each
+
+
+
+    situation=FAILING;
+    Serial.println("I switched to FAILING 1");
+    timefailurestarted = time;
+}}
+
+  //set failtime
+
+
+    if (situation == FAILING){
+
+        for (i = 0; i < NUM_LEDS; i++) {
+          if (i > 6) {  // WHICH LEVELS ARE ON DURING FAILING / DRAINING
+            ledState[i]=STATE_ON;
+          } else {
+            ledState[i]=STATE_OFF;
+          }
+        }
+    //      Serial.print("VICTORY OVER, FAILING, volts = ");
+    //  Serial.println(volts);
       }
+
+          if (situation == IDLING){
+
+        for (i = 0; i < NUM_LEDS; i++) {
+             // WHICH LEVELS ARE ON DURING FAILING / DRAINING
+            ledState[i]=STATE_OFF;
+
+        }
+    //      Serial.print("VICTORY OVER, FAILING, volts = ");
+    //  Serial.println(volts);
+      }
+
+  if (situation == FAILING && relayState!=STATE_ON && (time - timefailurestarted) > 10000 ) {
+//       Open the Relay so volts can drop;
+    digitalWrite(RELAYPIN, HIGH);
+    relayState = STATE_ON;
+      Serial.println("RELAY STATE CHANGED");
+
     }
-  }
+
+
 
   // loop through each led and turn on/off or adjust PWM
 
@@ -409,6 +566,129 @@ void doLeds(){
   }
 
 } // END doLeds()
+
+void  turnThemOffOneAtATime(){
+
+        //Go into party mode
+
+  digitalWrite(10, HIGH);
+
+  digitalWrite(11, HIGH);
+
+    digitalWrite(9, HIGH);
+
+  digitalWrite(8, HIGH);
+
+    digitalWrite(7, HIGH);
+
+  digitalWrite(6, HIGH);
+
+    digitalWrite(5, HIGH);
+
+  digitalWrite(4, HIGH);
+
+    digitalWrite(3, HIGH);
+
+
+  digitalWrite(10, LOW);
+  delay(200);
+  Serial.print("11 OFF");
+  digitalWrite(11, LOW);
+  delay(200);
+    Serial.print("10 OFF");
+    digitalWrite(9, LOW);
+  delay(200);
+    Serial.print("9 OFF");
+  digitalWrite(8, LOW);
+    Serial.print("8 OFF");
+  delay(200);
+    digitalWrite(7, LOW);
+      Serial.print("7 OFF");
+  delay(200);
+  digitalWrite(6, LOW);
+    Serial.print("6 OFF");
+  delay(200);
+    digitalWrite(5, LOW);
+      Serial.print("5 OFF");
+  delay(200);
+  digitalWrite(4, LOW);
+    Serial.print("4 OFF");
+  delay(200);
+    digitalWrite(3, LOW);
+      Serial.print("3 OFF");
+  delay(200);
+}
+
+void doSafety() {
+  if (volts > MAX_VOLTS){
+    digitalWrite(RELAYPIN, HIGH);
+    relayState = STATE_ON;
+    Serial.println("Safety trip!");
+      Serial.println("RELAY STATE CHANGED");
+  }
+
+  if (relayState == STATE_ON && situation != FAILING && volts < RECOVERY_VOLTS){
+    digitalWrite(RELAYPIN, LOW);
+    relayState = STATE_OFF;
+      Serial.println("RELAY STATE CHANGED");
+  }
+
+  if (volts > DANGER_VOLTS){
+    dangerState = STATE_ON;
+
+  }
+  else {
+    dangerState = STATE_OFF;
+
+  }
+}
+
+void doBuck() {
+  if (volts > BUCK_CUTIN) { // voltage is high enough to turn on transistors
+    if (volts <= BUCK_VOLTAGE) { // system voltage is lower than inverter target voltage
+      digitalWrite(9,HIGH); // turn transistors fully on, give full voltage to inverter
+      buckPWM = 0;
+    }
+
+    if ((volts > BUCK_VOLTAGE+BUCK_HYSTERESIS) && (buckPWM == 0)) { // begin PWM action
+      buckPWM = 255.0 * (1.0 - ((volts - BUCK_VOLTAGE) / BUCK_VOLTAGE)); // best guess for initial PWM value
+      //      Serial.print("buckval=");
+      //      Serial.println(buckPWM);
+      analogWrite(9,(int) buckPWM); // actually set the thing in motion
+    }
+
+    if ((volts > BUCK_VOLTAGE) && (buckPWM != 0)) { // adjust PWM value based on results
+      if (volts - voltsBuck > BUCK_VOLTAGE + BUCK_HYSTERESIS) { // inverter voltage is too high
+        buckPWM -= BUCK_PWM_DOWNJUMP; // reduce PWM value to reduce inverter voltage
+        if (buckPWM <= 0) {
+          //          Serial.print("0");
+          buckPWM = 1; // minimum PWM value
+        }
+        if (lastBuckPWM != (int) buckPWM) { // only if the PWM value has changed should we...
+          lastBuckPWM = (int) buckPWM;
+          //          Serial.print("-");
+          analogWrite(9,lastBuckPWM); // actually set the PWM value
+        }
+      }
+      if (volts - voltsBuck < BUCK_VOLTAGE) { // inverter voltage is too low
+        buckPWM += BUCK_PWM_UPJUMP; // increase PWM value to raise inverter voltage
+        if (buckPWM > 255.0) {
+          buckPWM = 255.0;
+          //          Serial.print("X");
+        }
+        if (lastBuckPWM != (int) buckPWM) { // only if the PWM value has changed should we...
+          lastBuckPWM = (int) buckPWM;
+          //          Serial.print("+");
+          analogWrite(9,lastBuckPWM); // actually set the PWM value
+        }
+      }
+    }
+  }
+  if (volts < BUCK_CUTOUT) { // system voltage is too low for transistors
+    digitalWrite(9,LOW); // turn off transistors
+  }
+}
+
 
 void getAmps(){
   ampsAdc = analogRead(AMPSPIN);
@@ -474,7 +754,17 @@ void printWattHours(){
 void printDisplay(){
   Serial.print(volts);
   Serial.print("v (");
-  Serial.println(analogRead(VOLTPIN));
+  Serial.print(analogRead(VOLTPIN));
+  Serial.print("   Situation: ");
+  Serial.print(situation);
+    Serial.print("   Time: ");
+  Serial.print(time);
+    Serial.print("   VictoryTime: ");
+  Serial.println(victoryTime);
+  //   Serial.print("   ledLevels[numLEDS]: ");
+ // Serial.println(ledLevels[NUM_LEDS]);
+   //    Serial.print("   ledLevels[numLEDS- 1]: ");
+ // Serial.println(ledLevels[NUM_LEDS - 1]); JAKE
   //  Serial.print(", a: ");
   //  Serial.print(amps);
   //  Serial.print(", va: ");
