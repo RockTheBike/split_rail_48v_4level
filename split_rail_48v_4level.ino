@@ -1,4 +1,5 @@
 #define BAUD_RATE 9600
+#define DEBUG 0 // set to 1 to enable serial information printing
 /**** Single-rail Pedalometer
  * Arduino code to run the Dance with Lance Arbduino
  * ver. 1.14
@@ -142,7 +143,7 @@ int boxNumber; // short pin A5 to ground on boxNumber 1
 void setup() {
   Serial.begin(BAUD_RATE);
 
-  Serial.println(versionStr);
+  if (DEBUG) Serial.println(versionStr);
 
   pinMode(RELAYPIN, OUTPUT);
   digitalWrite(RELAYPIN,LOW);
@@ -235,96 +236,96 @@ FAILING is for voltage (actual, not adjusted) to fall below 13.5 .
 //   || (volts - volts2SecondsAgo) < 0.03 || (volts2SecondsAgo - volts) < 0.03
     if ( volts <= volts2SecondsAgo) { // stuck or slow drift
         timeSinceVoltageBeganFalling++;
-  //   Serial.print("Voltage has been falling for ");
-    //     Serial.print(timeSinceVoltageBeganFalling);
-     //  Serial.println(" seconds.");
+  //   if (DEBUG) Serial.print("Voltage has been falling for ");
+    //     if (DEBUG) Serial.print(timeSinceVoltageBeganFalling);
+     //  if (DEBUG) Serial.println(" seconds.");
       } else {
         timeSinceVoltageBeganFalling = 0;
       }
-        Serial.print("Volts: ");
-        Serial.print(volts);
+        if (DEBUG) Serial.print("Volts: ");
+        if (DEBUG) Serial.print(volts);
 
-      Serial.print("Voltage has been flat or falling for ");
-         Serial.print(timeSinceVoltageBeganFalling);
-       Serial.print(" seconds. & volts2Secondsago = ");
-        Serial.println(volts2SecondsAgo);
+      if (DEBUG) Serial.print("Voltage has been flat or falling for ");
+         if (DEBUG) Serial.print(timeSinceVoltageBeganFalling);
+       if (DEBUG) Serial.print(" seconds. & volts2Secondsago = ");
+        if (DEBUG) Serial.println(volts2SecondsAgo);
 
 
-  // Serial.println("hello");
+  // if (DEBUG) Serial.println("hello");
     vRTime += 1000; // add a second to the timer index
     voltRecord[vRIndex] = volts; // store the value. JAKE doing vRIndex++ didn't work. needed to be on two separate lines.
-  /*  Serial.print("voltRecord current entry: ");
-    Serial.print(voltRecord[vRIndex]);
-    Serial.print(", vRIndex: ");
-    Serial.println(vRIndex); */
+  /*  if (DEBUG) Serial.print("voltRecord current entry: ");
+    if (DEBUG) Serial.print(voltRecord[vRIndex]);
+    if (DEBUG) Serial.print(", vRIndex: ");
+    if (DEBUG) Serial.println(vRIndex); */
     vRIndex++;
     if (vRIndex >= VRSIZE) vRIndex = 0; // wrap the counter if necessary
 // What's the situation?
-  /*     Serial.print("volts: ");
-    Serial.print(volts);
-     Serial.print(", voltRecord[(vRIndex-2)]: ");
-    Serial.print(voltRecord[(vRIndex-2)]);
-         Serial.print(", voltRecord[(vRIndex - 1)]=");
-    Serial.print(voltRecord[(vRIndex - 1)]);
-      Serial.print(", vRIndex");
-    Serial.print(vRIndex);
-          Serial.print(", voltsBefore: ");
-    Serial.println(voltsBefore); */
+  /*     if (DEBUG) Serial.print("volts: ");
+    if (DEBUG) Serial.print(volts);
+     if (DEBUG) Serial.print(", voltRecord[(vRIndex-2)]: ");
+    if (DEBUG) Serial.print(voltRecord[(vRIndex-2)]);
+         if (DEBUG) Serial.print(", voltRecord[(vRIndex - 1)]=");
+    if (DEBUG) Serial.print(voltRecord[(vRIndex - 1)]);
+      if (DEBUG) Serial.print(", vRIndex");
+    if (DEBUG) Serial.print(vRIndex);
+          if (DEBUG) Serial.print(", voltsBefore: ");
+    if (DEBUG) Serial.println(voltsBefore); */
 
   }
 // if just began don't change from idling yet.
 if (situation == JUSTBEGAN) {
-  Serial.println("Just Began");
-  //  Serial.println(volts);
+  if (DEBUG) Serial.println("Just Began");
+  //  if (DEBUG) Serial.println(volts);
 
   }
 // Am I idling?
 
 if (volts < 13.5 && situation == FAILING ){
  situation = IDLING; //FAILING worked! we brought the voltage back to under 14.
-   Serial.print("got to IDLING 1");
-   // Serial.println(volts);
+   if (DEBUG) Serial.print("got to IDLING 1");
+   // if (DEBUG) Serial.println(volts);
 
    delay(2000);
         digitalWrite(RELAYPIN, LOW);
     relayState = STATE_OFF;
-    Serial.println("RELAY STATE CHANGED");
+    if (DEBUG) Serial.println("RELAY STATE CHANGED");
   }
 
 
 
 if (volts < 12 && situation != PLAYING && situation != JUSTBEGAN) {
     situation = IDLING;
- //   Serial.print("IDLING, volts=");
-  //  Serial.println(volts);
+ //   if (DEBUG) Serial.print("IDLING, volts=");
+  //  if (DEBUG) Serial.println(volts);
 
   }
 
-// Serial.print("
+// if (DEBUG) Serial.print("
 
 
 volts2SecondsAgo =  voltRecord[(vRIndex + VRSIZE - 2) % VRSIZE]; // voltage LOSESECONDS ago
- // Serial.print("Volts 2 seconds ago.");
-//Serial.println (volts2SecondsAgo);
+ // if (DEBUG) Serial.print("Volts 2 seconds ago.");
+//if (DEBUG) Serial.println (volts2SecondsAgo);
 // Check for PLAYING . PLAYING is when you were IDLING but now you're PLAYING.
 
 if (situation==IDLING){
-//   Serial.print("IDLING, check for PLAYING.");
-//  Serial.println (volts - voltRecord[(vRIndex-2)]);
+//   if (DEBUG) Serial.print("IDLING, check for PLAYING.");
+//  if (DEBUG) Serial.println (volts - voltRecord[(vRIndex-2)]);
 
   if (volts - volts2SecondsAgo > 0.4){ // need to get past startup sequences
 
- Serial.print("Volts 2 seconds ago: ");
-Serial.print (volts2SecondsAgo);
- Serial.print(", volts: ");
-Serial.print (volts);
+ if (DEBUG) Serial.print("Volts 2 seconds ago: ");
+if (DEBUG) Serial.print (volts2SecondsAgo);
+ if (DEBUG) Serial.print(", volts: ");
+if (DEBUG) Serial.print (volts);
 
-//   Serial.println ("hey");
+//   if (DEBUG) Serial.println ("hey");
     situation = PLAYING;
    timeSinceVoltageBeganFalling = 0;
     voltsBefore = volts;
     resetVoltRecord();
-    Serial.println("got to PLAYING 1");// pedaling has begun in earnest
+    if (DEBUG) Serial.println("got to PLAYING 1");// pedaling has begun in earnest
 
   }
    /*
@@ -339,16 +340,16 @@ if (situation != VICTORY && situation == PLAYING) { // if we're not in VICTORY m
       voltsBefore =  voltRecord[(vRIndex + VRSIZE - LOSESECONDS) % VRSIZE]; // voltage LOSESECONDS ago
 
       if (timeSinceVoltageBeganFalling > 15) {
-              Serial.println("Got to Failing. Voltage has been falling for 15 seconds. ");
+              if (DEBUG) Serial.println("Got to Failing. Voltage has been falling for 15 seconds. ");
 
            situation=FAILING;
       } else if ((voltsBefore - volts) > 3) { // if voltage has fallen but they haven't given up
-       Serial.print("voltsBefore: ");
-         Serial.println(voltsBefore);
-  //     Serial.print("volts before: ");
-   //    Serial.println(voltsBefore);
+       if (DEBUG) Serial.print("voltsBefore: ");
+         if (DEBUG) Serial.println(voltsBefore);
+  //     if (DEBUG) Serial.print("volts before: ");
+   //    if (DEBUG) Serial.println(voltsBefore);
 	situation = FAILING; // forget it, you lose
-  Serial.println("got to FAILING 2");
+  if (DEBUG) Serial.println("got to FAILING 2");
        timefailurestarted = time;
 
       }
@@ -362,20 +363,20 @@ if (situation != VICTORY && situation == PLAYING) { // if we're not in VICTORY m
 
   if (volts < ledLevels[NUM_LEDS-1]){
       topLevelTime = time; // reset timer unless you're at top level
-//  Serial.println(topLevelTime);
+//  if (DEBUG) Serial.println(topLevelTime);
 }
 
 /*if (volts >= ledLevels[NUM_LEDS - 1]){
-    Serial.print("Got to level LEVEL 10");
- //   Serial.println(volts);
+    if (DEBUG) Serial.print("Got to level LEVEL 10");
+ //   if (DEBUG) Serial.println(volts);
 };*/
 
   if (situation == PLAYING && time - topLevelTime > WINTIME && volts >= ledLevels[NUM_LEDS - 1]) { // it's been WINTIME milliseconds of solid top-level action!
 
     if (situation != VICTORY) victoryTime = time; // record the start time of victory
     situation = VICTORY;
-   Serial.print("got to VICTORY 1");
- //   Serial.println(volts);
+   if (DEBUG) Serial.print("got to VICTORY 1");
+ //   if (DEBUG) Serial.println(volts);
 
   }
 
@@ -416,7 +417,7 @@ void readSerial() {
 float fakeVoltage() {
   doKnob(); // read knob value into knobAdc
   float multiplier = (float)FAKEDIVISOR / (float)(FAKEDIVISOR - knobAdc);
-//  Serial.println(multiplier); // just for debugging
+//  if (DEBUG) Serial.println(multiplier); // just for debugging
   volts = volts * multiplier; // turning knob up returns higher voltage
 
   // JAKE -- research how to do 'return'. It wasn't working so I changed to the volts = ... above.
@@ -515,8 +516,8 @@ void doLeds(){
 
   if (situation == VICTORY) { // assuming victory is not over
 
-    //  Serial.print("VICTORY, volts=");
-     // Serial.println(volts);
+    //  if (DEBUG) Serial.print("VICTORY, volts=");
+     // if (DEBUG) Serial.println(volts);
 
   if (time - victoryTime <= 3000){
     for (i = 0; i < NUM_LEDS - 1; i++) {
@@ -533,7 +534,7 @@ void doLeds(){
 
 
     situation=FAILING;
-    Serial.println("I switched to FAILING 1");
+    if (DEBUG) Serial.println("I switched to FAILING 1");
     timefailurestarted = time;
 }}
 
@@ -549,8 +550,8 @@ void doLeds(){
             ledState[i]=STATE_OFF;
           }
         }
-    //      Serial.print("VICTORY OVER, FAILING, volts = ");
-    //  Serial.println(volts);
+    //      if (DEBUG) Serial.print("VICTORY OVER, FAILING, volts = ");
+    //  if (DEBUG) Serial.println(volts);
       }
 
           if (situation == IDLING){
@@ -560,15 +561,15 @@ void doLeds(){
             ledState[i]=STATE_OFF;
 
         }
-    //      Serial.print("VICTORY OVER, FAILING, volts = ");
-    //  Serial.println(volts);
+    //      if (DEBUG) Serial.print("VICTORY OVER, FAILING, volts = ");
+    //  if (DEBUG) Serial.println(volts);
       }
 
   if (situation == FAILING && relayState!=STATE_ON && (time - timefailurestarted) > 10000 ) {
 //       Open the Relay so volts can drop;
     digitalWrite(RELAYPIN, HIGH);
     relayState = STATE_ON;
-      Serial.println("RELAY STATE CHANGED");
+      if (DEBUG) Serial.println("RELAY STATE CHANGED");
 
     }
 
@@ -633,30 +634,30 @@ void  turnThemOffOneAtATime(){
 
   digitalWrite(10, LOW);
   delay(200);
-  Serial.print("11 OFF");
+  if (DEBUG) Serial.print("11 OFF");
   digitalWrite(11, LOW);
   delay(200);
-    Serial.print("10 OFF");
+    if (DEBUG) Serial.print("10 OFF");
     digitalWrite(9, LOW);
   delay(200);
-    Serial.print("9 OFF");
+    if (DEBUG) Serial.print("9 OFF");
   digitalWrite(8, LOW);
-    Serial.print("8 OFF");
+    if (DEBUG) Serial.print("8 OFF");
   delay(200);
     digitalWrite(7, LOW);
-      Serial.print("7 OFF");
+      if (DEBUG) Serial.print("7 OFF");
   delay(200);
   digitalWrite(6, LOW);
-    Serial.print("6 OFF");
+    if (DEBUG) Serial.print("6 OFF");
   delay(200);
     digitalWrite(5, LOW);
-      Serial.print("5 OFF");
+      if (DEBUG) Serial.print("5 OFF");
   delay(200);
   digitalWrite(4, LOW);
-    Serial.print("4 OFF");
+    if (DEBUG) Serial.print("4 OFF");
   delay(200);
     digitalWrite(3, LOW);
-      Serial.print("3 OFF");
+      if (DEBUG) Serial.print("3 OFF");
   delay(200);
 }
 
@@ -664,14 +665,14 @@ void doSafety() {
   if (volts > MAX_VOLTS){
     digitalWrite(RELAYPIN, HIGH);
     relayState = STATE_ON;
-    Serial.println("Safety trip!");
-      Serial.println("RELAY STATE CHANGED");
+    if (DEBUG) Serial.println("Safety trip!");
+      if (DEBUG) Serial.println("RELAY STATE CHANGED");
   }
 
   if (relayState == STATE_ON && situation != FAILING && volts < RECOVERY_VOLTS){
     digitalWrite(RELAYPIN, LOW);
     relayState = STATE_OFF;
-      Serial.println("RELAY STATE CHANGED");
+      if (DEBUG) Serial.println("RELAY STATE CHANGED");
   }
 
   if (volts > DANGER_VOLTS){
@@ -693,8 +694,8 @@ void doBuck() {
 
     if ((volts > BUCK_VOLTAGE+BUCK_HYSTERESIS) && (buckPWM == 0)) { // begin PWM action
       buckPWM = 255.0 * (1.0 - ((volts - BUCK_VOLTAGE) / BUCK_VOLTAGE)); // best guess for initial PWM value
-      //      Serial.print("buckval=");
-      //      Serial.println(buckPWM);
+      //      if (DEBUG) Serial.print("buckval=");
+      //      if (DEBUG) Serial.println(buckPWM);
       analogWrite(9,(int) buckPWM); // actually set the thing in motion
     }
 
@@ -702,12 +703,12 @@ void doBuck() {
       if (volts - voltsBuck > BUCK_VOLTAGE + BUCK_HYSTERESIS) { // inverter voltage is too high
         buckPWM -= BUCK_PWM_DOWNJUMP; // reduce PWM value to reduce inverter voltage
         if (buckPWM <= 0) {
-          //          Serial.print("0");
+          //          if (DEBUG) Serial.print("0");
           buckPWM = 1; // minimum PWM value
         }
         if (lastBuckPWM != (int) buckPWM) { // only if the PWM value has changed should we...
           lastBuckPWM = (int) buckPWM;
-          //          Serial.print("-");
+          //          if (DEBUG) Serial.print("-");
           analogWrite(9,lastBuckPWM); // actually set the PWM value
         }
       }
@@ -715,11 +716,11 @@ void doBuck() {
         buckPWM += BUCK_PWM_UPJUMP; // increase PWM value to raise inverter voltage
         if (buckPWM > 255.0) {
           buckPWM = 255.0;
-          //          Serial.print("X");
+          //          if (DEBUG) Serial.print("X");
         }
         if (lastBuckPWM != (int) buckPWM) { // only if the PWM value has changed should we...
           lastBuckPWM = (int) buckPWM;
-          //          Serial.print("+");
+          //          if (DEBUG) Serial.print("+");
           analogWrite(9,lastBuckPWM); // actually set the PWM value
         }
       }
@@ -781,49 +782,49 @@ void calcWattHours(){
 }
 
 void printWatts(){
-  Serial.print("w");
-  Serial.println(watts);
+  if (DEBUG) Serial.print("w");
+  if (DEBUG) Serial.println(watts);
 }
 
 void printWattHours(){
-  Serial.print("w"); // tell the sign to print the following number
+  if (DEBUG) Serial.print("w"); // tell the sign to print the following number
   //  the sign will ignore printed decimal point and digits after it!
-  Serial.println(wattHours,1); // print just the number of watt-hours
-  //  Serial.println(wattHours*10,1); // for this you must put a decimal point onto the sign!
+  if (DEBUG) Serial.println(wattHours,1); // print just the number of watt-hours
+  //  if (DEBUG) Serial.println(wattHours*10,1); // for this you must put a decimal point onto the sign!
 }
 
 void printDisplay(){
-  Serial.print(volts);
-  Serial.print("v (");
-  Serial.print(analogRead(VOLTPIN));
-  Serial.print("   Situation: ");
-  Serial.print(situation);
-    Serial.print("   Time: ");
-  Serial.print(time);
-    Serial.print("   VictoryTime: ");
-  Serial.println(victoryTime);
-  //   Serial.print("   ledLevels[numLEDS]: ");
- // Serial.println(ledLevels[NUM_LEDS]);
-   //    Serial.print("   ledLevels[numLEDS- 1]: ");
- // Serial.println(ledLevels[NUM_LEDS - 1]); JAKE
-  //  Serial.print(", a: ");
-  //  Serial.print(amps);
-  //  Serial.print(", va: ");
-  //  Serial.print(watts);
-  //  Serial.print(", voltsBuck: ");
-  //  Serial.print(voltsBuck);
-  //  Serial.print(", inverter: ");
-  //  Serial.print(volts-voltsBuck);
+  if (DEBUG) Serial.print(volts);
+  if (DEBUG) Serial.print("v (");
+  if (DEBUG) Serial.print(analogRead(VOLTPIN));
+  if (DEBUG) Serial.print("   Situation: ");
+  if (DEBUG) Serial.print(situation);
+    if (DEBUG) Serial.print("   Time: ");
+  if (DEBUG) Serial.print(time);
+    if (DEBUG) Serial.print("   VictoryTime: ");
+  if (DEBUG) Serial.println(victoryTime);
+  //   if (DEBUG) Serial.print("   ledLevels[numLEDS]: ");
+ // if (DEBUG) Serial.println(ledLevels[NUM_LEDS]);
+   //    if (DEBUG) Serial.print("   ledLevels[numLEDS- 1]: ");
+ // if (DEBUG) Serial.println(ledLevels[NUM_LEDS - 1]); JAKE
+  //  if (DEBUG) Serial.print(", a: ");
+  //  if (DEBUG) Serial.print(amps);
+  //  if (DEBUG) Serial.print(", va: ");
+  //  if (DEBUG) Serial.print(watts);
+  //  if (DEBUG) Serial.print(", voltsBuck: ");
+  //  if (DEBUG) Serial.print(voltsBuck);
+  //  if (DEBUG) Serial.print(", inverter: ");
+  //  if (DEBUG) Serial.print(volts-voltsBuck);
 
-  //  Serial.print(", Levels ");
+  //  if (DEBUG) Serial.print(", Levels ");
   //  for(i = 0; i < NUM_LEDS; i++) {
-  //    Serial.print(i);
-  //    Serial.print(": ");
-  //    Serial.print(ledState[i]);
-  //    Serial.print(", ");
+  //    if (DEBUG) Serial.print(i);
+  //    if (DEBUG) Serial.print(": ");
+  //    if (DEBUG) Serial.print(ledState[i]);
+  //    if (DEBUG) Serial.print(", ");
   //  }
-  //  Serial.println("");
-  // Serial.println();
+  //  if (DEBUG) Serial.println("");
+  // if (DEBUG) Serial.println();
 }
 
 void setPwmFrequency(int pin, int divisor) {
