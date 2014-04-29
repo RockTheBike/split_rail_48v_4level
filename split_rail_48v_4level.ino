@@ -133,7 +133,8 @@ unsigned long timefailurestarted = 0;
 unsigned long timeArbduinoTurnedOn = 0;
 unsigned long serialTime = 0; // time when last serial data was seen
 #define SERIALTIMEOUT 2000 // if serial data is older than this, ignore it
-byte inByte = 0; // byte we read from the other utility box
+byte otherLevel = 0; // byte we read from the other utility box
+byte presentLevel = 0;  // what "level" of transistors are we lit up to right now?
 
 int timeSinceVoltageBeganFalling = 0;
 // var for looping through arrays
@@ -172,7 +173,17 @@ void loop() {
   doSafety();
   fakeVoltage(); // adjust voltage according to knob
   readSerial();  // see if there's a byte waiting on the serial port from other sledgehammer
+  if (DEBUG == 0) {
+    Serial.print("s"); // send an "s" to say we're a sledge here!
+    if (presentLevel >= 0 && presentLevel <= 9) Serial.print(presentLevel); // send to other box
+    delay(10); // let's not crash the computer with too much serial data
+  }
 
+  if (time - serialTime < SERIALTIMEOUT) {
+    Serial.print("received a valid data = ");
+    Serial.println(otherLevel);
+    serialTime = 0; // we got it
+  }
 
 /*
 Situation is either:
@@ -406,9 +417,11 @@ if (situation != VICTORY && situation == PLAYING) { // if we're not in VICTORY m
 
 void readSerial() {
   if (Serial.available()) {
-    inByte = Serial.read();
-    if (inByte >= '0' && inByte <= '9') {
-      serialTime = time;
+    byte previousByte = otherLevel; // should be an 's' if this is a data
+    otherLevel = Serial.read();
+    if (otherLevel >= '0' && otherLevel <= '9' && previousByte == 's') {
+      serialTime = time; // if we got here, it must be another sLEDgehammer
+      otherLevel -= 48; // make it an actual number like 'presentLevel'
     }
   }
 }
@@ -485,9 +498,11 @@ pedaling.
 
 void doLeds(){
 
+  presentLevel = 0; // we will now load presentLevel with highest level achieved
   for(i = 0; i < NUM_LEDS; i++) {
     if(volts >= ledLevels[i]){
       ledState[i]=STATE_ON;
+      presentLevel = i; // presentLevel should equal the highest LED level
     }
     else
       ledState[i]=STATE_OFF;
