@@ -34,7 +34,7 @@ char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility B
 #define AMPSPIN A3 // Current Sensor Pin
 #define NUM_LEDS 10 // Number of LED outputs.
 const int ledPins[NUM_LEDS] = {
-  3, 4, 5, 6, 7, 8, 9, 12, 11, 10};
+  3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
 
 // levels at which each LED turns on (not including special states)
 const float ledLevels[NUM_LEDS+1] = {
