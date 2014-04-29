@@ -1,4 +1,4 @@
-#define BAUD_RATE 57600
+#define BAUD_RATE 9600
 /**** Single-rail Pedalometer
  * Arduino code to run the Dance with Lance Arbduino
  * ver. 1.14
@@ -130,6 +130,10 @@ unsigned long victoryTime = 0; // how long it's been since we declared victory
 unsigned long topLevelTime = 0; // how long we've been at top voltage level
 unsigned long timefailurestarted = 0;
 unsigned long timeArbduinoTurnedOn = 0;
+unsigned long serialTime = 0; // time when last serial data was seen
+#define SERIALTIMEOUT 2000 // if serial data is older than this, ignore it
+byte inByte = 0; // byte we read from the other utility box
+
 int timeSinceVoltageBeganFalling = 0;
 // var for looping through arrays
 int i = 0;
@@ -166,6 +170,7 @@ void loop() {
   getVolts();
   doSafety();
   fakeVoltage(); // adjust voltage according to knob
+  readSerial();  // see if there's a byte waiting on the serial port from other sledgehammer
 
 
 /*
@@ -396,6 +401,15 @@ if (situation != VICTORY && situation == PLAYING) { // if we're not in VICTORY m
   }
 
 
+}
+
+void readSerial() {
+  if (Serial.available()) {
+    inByte = Serial.read();
+    if (inByte >= '0' && inByte <= '9') {
+      serialTime = time;
+    }
+  }
 }
 
 #define FAKEDIVISOR 2800 // 2026 allows doubling of voltage, 3039 allows 50% increase, etc..
