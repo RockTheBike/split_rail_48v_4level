@@ -131,10 +131,14 @@ unsigned long victoryTime = 0; // how long it's been since we declared victory
 unsigned long topLevelTime = 0; // how long we've been at top voltage level
 unsigned long timefailurestarted = 0;
 unsigned long timeArbduinoTurnedOn = 0;
+unsigned long clearlyLosingTime = 0; // time when we last were NOT clearly losing
 unsigned long serialTime = 0; // time when last serial data was seen
 #define SERIALTIMEOUT 2000 // if serial data is older than this, ignore it
 byte otherLevel = 0; // byte we read from the other utility box
 byte presentLevel = 0;  // what "level" of transistors are we lit up to right now?
+
+float voltishFactor = 1.0; // multiplier of voltage for competitive purposes
+float voltish = 0; // this is where we store the adjusted voltage
 
 int timeSinceVoltageBeganFalling = 0;
 // var for looping through arrays
@@ -172,8 +176,13 @@ void loop() {
   getVolts();
   doSafety();
   fakeVoltage(); // adjust voltage according to knob
+  clearlyWinning(); // check to see if we're clearly losing and update voltish
   sendSerial();  // tell other box our presentLevel
   readSerial();  // see if there's a byte waiting on the serial port from other sledgehammer
+
+  if (otherLevel == 10) { // other box has won!  we lose.
+    if (situation != FAILING) turnThemOffOneAtATime();
+    situation = FAILING;
   }
 
   if (time - serialTime < SERIALTIMEOUT) {
@@ -410,6 +419,16 @@ if (situation != VICTORY && situation == PLAYING) { // if we're not in VICTORY m
   }
 
 
+}
+
+void clearlyWinning() { // adjusts voltishFactor according to whether we're clearly losing
+  if (otherLevel < (presentLevel + 2)) clearlyLosingTime = time; // reset the timer if we're not losing
+  if (time - clearlyLosingTime > 2000) { // we ARE clearly losing, so let's adjust voltishFactor
+    if (voltishFactor  < 1.5) voltishFactor  += 0.1; // increase our fakery
+    clearlyLosingTime = time; // reset the timer since we made the adjustment
+  }
+  if (situation == FAILING) voltishFactor  = 1.0; // reset voltishFactor  since we've failed
+  voltish = (volts + voltishFactor); // calculate the adjusted voltage
 }
 
 void sendSerial() {
