@@ -650,56 +650,15 @@ void doLeds(){
 
 } // END doLeds()
 
-void  turnThemOffOneAtATime(){
-
+void turnThemOffOneAtATime(){
         //Go into party mode
-
-  digitalWrite(10, HIGH);
-
-  digitalWrite(11, HIGH);
-
-    digitalWrite(9, HIGH);
-
-  digitalWrite(8, HIGH);
-
-    digitalWrite(7, HIGH);
-
-  digitalWrite(6, HIGH);
-
-    digitalWrite(5, HIGH);
-
-  digitalWrite(4, HIGH);
-
-    digitalWrite(3, HIGH);
-
-
-  digitalWrite(10, LOW);
-  delay(200);
-  if (DEBUG) Serial.print("11 OFF");
-  digitalWrite(11, LOW);
-  delay(200);
-    if (DEBUG) Serial.print("10 OFF");
-    digitalWrite(9, LOW);
-  delay(200);
-    if (DEBUG) Serial.print("9 OFF");
-  digitalWrite(8, LOW);
-    if (DEBUG) Serial.print("8 OFF");
-  delay(200);
-    digitalWrite(7, LOW);
-      if (DEBUG) Serial.print("7 OFF");
-  delay(200);
-  digitalWrite(6, LOW);
-    if (DEBUG) Serial.print("6 OFF");
-  delay(200);
-    digitalWrite(5, LOW);
-      if (DEBUG) Serial.print("5 OFF");
-  delay(200);
-  digitalWrite(4, LOW);
-    if (DEBUG) Serial.print("4 OFF");
-  delay(200);
-    digitalWrite(3, LOW);
-      if (DEBUG) Serial.print("3 OFF");
-  delay(200);
+  for (i = 0; i < NUM_LEDS; i++) digitalWrite(i, HIGH); // turn on all levels
+  for (i = NUM_LEDS - 2; i >= 0; i--) { // leave the top halogen level ON
+    digitalWrite(i, LOW); // turn them off one at a time
+    if (DEBUG) Serial.print(i);
+    if (DEBUG) Serial.println(" OFF");
+    delay(200);
+  }
 }
 
 void doSafety() {
