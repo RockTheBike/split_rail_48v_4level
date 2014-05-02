@@ -172,11 +172,8 @@ void loop() {
   getVolts();
   doSafety();
   fakeVoltage(); // adjust voltage according to knob
+  sendSerial();  // tell other box our presentLevel
   readSerial();  // see if there's a byte waiting on the serial port from other sledgehammer
-  if (DEBUG == 0) {
-    Serial.print("s"); // send an "s" to say we're a sledge here!
-    if (presentLevel >= 0 && presentLevel <= 9) Serial.print(presentLevel); // send to other box
-    delay(10); // let's not crash the computer with too much serial data
   }
 
   if (time - serialTime < SERIALTIMEOUT) {
@@ -415,11 +412,19 @@ if (situation != VICTORY && situation == PLAYING) { // if we're not in VICTORY m
 
 }
 
+void sendSerial() {
+  if (DEBUG == 0) {
+    Serial.print("s"); // send an "s" to say we're a sledge here!
+    if (presentLevel >= 0 && presentLevel <= 10) Serial.print(char(presentLevel+48)); // send a : if presentLevel is 10(victory)
+    delay(10); // let's not crash the computer with too much serial data
+  }
+}
+
 void readSerial() {
   if (Serial.available()) {
     byte previousByte = otherLevel; // should be an 's' if this is a data
     otherLevel = Serial.read();
-    if (otherLevel >= '0' && otherLevel <= '9' && previousByte == 's') {
+    if (otherLevel >= '0' && otherLevel <= ':' && previousByte == 's') {
       serialTime = time; // if we got here, it must be another sLEDgehammer
       otherLevel -= 48; // make it an actual number like 'presentLevel'
     }
@@ -507,6 +512,8 @@ void doLeds(){
     else
       ledState[i]=STATE_OFF;
   }
+
+  if (situation == VICTORY) presentLevel = 10; // tell the other box we won!
 
   // if voltage is below the lowest level, blink the lowest level
   if (volts < ledLevels[0]){
