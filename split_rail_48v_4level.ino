@@ -162,7 +162,7 @@ void setup() {
   // init LED pins
   for(i = 0; i < NUM_LEDS; i++) {
     pinMode(ledPins[i],OUTPUT);
-      digitalWrite(ledPins[i]i,LOW);
+      digitalWrite(ledPins[i],LOW);
   }
   situation = JUSTBEGAN;
   timeDisplay = millis();
