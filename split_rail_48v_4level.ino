@@ -351,7 +351,7 @@ if (situation != VICTORY && situation == PLAYING) { // if we're not in VICTORY m
     }
  // }
 
-  if (voltish < ledLevels[NUM_LEDS-1]){
+  if (presentLevel < 9) { // voltish < ledLevels[NUM_LEDS-1]){
       topLevelTime = time; // reset timer unless you're at top level
 }
 
@@ -360,7 +360,7 @@ if (situation != VICTORY && situation == PLAYING) { // if we're not in VICTORY m
  //   if (DEBUG) Serial.println(volts);
 };*/
 
-  if (situation == PLAYING && time - topLevelTime > WINTIME && voltish >= ledLevels[NUM_LEDS - 1]) { // it's been WINTIME milliseconds of solid top-level action!
+  if ((situation == PLAYING) && (time - topLevelTime > WINTIME) && (presentLevel == 9)) { // it's been WINTIME milliseconds of solid top-level action!
 
     if (situation != VICTORY) victoryTime = time; // record the start time of victory
     situation = VICTORY;
@@ -496,7 +496,7 @@ void doLeds(){
 
   presentLevel = 0; // we will now load presentLevel with highest level achieved
   for(i = 0; i < NUM_LEDS; i++) {
-    if(volts >= ledLevels[i]){
+    if(voltish >= ledLevels[i]){
       ledState[i]=STATE_ON;
       presentLevel = i; // presentLevel should equal the highest LED level
     }
@@ -507,12 +507,12 @@ void doLeds(){
   if (situation == VICTORY) presentLevel = 10; // tell the other box we won!
 
   // if voltage is below the lowest level, blink the lowest level
-  if (volts < ledLevels[0]){
+  if (voltish < ledLevels[0]){
     // ledState[0]=STATE_BLINK;
   }
 
   // turn off first x levels if voltage is above 3rd level
-  if(volts > ledLevels[1]){
+  if(voltish > ledLevels[1]){
     // ledState[0] = STATE_OFF;
 //    ledState[1] = STATE_OFF;
   }
@@ -523,7 +523,7 @@ void doLeds(){
     }
   }
 
-  if (volts >= ledLevels[NUM_LEDS]) {// if at the top voltage level, blink last LEDS fast
+  if (voltish >= ledLevels[NUM_LEDS]) {// if at the top voltage level, blink last LEDS fast
 //     ledState[NUM_LEDS-1] = STATE_BLINKFAST; // last set of LEDs
   }
 
