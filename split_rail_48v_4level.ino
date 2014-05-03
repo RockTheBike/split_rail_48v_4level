@@ -175,8 +175,8 @@ void loop() {
   time = millis();
   getVolts();
   doSafety();
-  fakeVoltage(); // adjust voltage according to knob
-  clearlyWinning(); // check to see if we're clearly losing and update voltish
+  fakeVoltage(); // adjust 'volts' according to knob
+  clearlyWinning(); // check to see if we're clearly losing and update 'voltish'
   sendSerial();  // tell other box our presentLevel
   readSerial();  // see if there's a byte waiting on the serial port from other sledgehammer
 
@@ -250,8 +250,8 @@ FAILING is for voltage (actual, not adjusted) to fall below 13.5 .
   if(situation == JUSTBEGAN){
      if (time-timeArbduinoTurnedOn > 2200) situation = IDLING;
    }
-//   || (volts - volts2SecondsAgo) < 0.03 || (volts2SecondsAgo - volts) < 0.03
-    if ( volts <= volts2SecondsAgo) { // stuck or slow drift
+//   || (voltish - volts2SecondsAgo) < 0.03 || (volts2SecondsAgo - voltish) < 0.03
+    if ( voltish <= volts2SecondsAgo) { // stuck or slow drift
         timeSinceVoltageBeganFalling++;
   //   if (DEBUG) Serial.print("Voltage has been falling for ");
     //     if (DEBUG) Serial.print(timeSinceVoltageBeganFalling);
@@ -270,7 +270,7 @@ FAILING is for voltage (actual, not adjusted) to fall below 13.5 .
 
   // if (DEBUG) Serial.println("hello");
     vRTime += 1000; // add a second to the timer index
-    voltRecord[vRIndex] = volts; // store the value. JAKE doing vRIndex++ didn't work. needed to be on two separate lines.
+    voltRecord[vRIndex] = voltish; // store the value. JAKE doing vRIndex++ didn't work. needed to be on two separate lines.
   /*  if (DEBUG) Serial.print("voltRecord current entry: ");
     if (DEBUG) Serial.print(voltRecord[vRIndex]);
     if (DEBUG) Serial.print(", vRIndex: ");
@@ -330,7 +330,7 @@ if (situation==IDLING){
 //   if (DEBUG) Serial.print("IDLING, check for PLAYING.");
 //  if (DEBUG) Serial.println (volts - voltRecord[(vRIndex-2)]);
 
-  if (volts - volts2SecondsAgo > 0.4){ // need to get past startup sequences
+  if (voltish - volts2SecondsAgo > 0.4){ // need to get past startup sequences
 
  if (DEBUG) Serial.print("Volts 2 seconds ago: ");
 if (DEBUG) Serial.print (volts2SecondsAgo);
@@ -340,7 +340,7 @@ if (DEBUG) Serial.print (volts);
 //   if (DEBUG) Serial.println ("hey");
     situation = PLAYING;
    timeSinceVoltageBeganFalling = 0;
-    voltsBefore = volts;
+    voltsBefore = voltish;
     resetVoltRecord();
     if (DEBUG) Serial.println("got to PLAYING 1");// pedaling has begun in earnest
 
@@ -360,7 +360,7 @@ if (situation != VICTORY && situation == PLAYING) { // if we're not in VICTORY m
               if (DEBUG) Serial.println("Got to Failing. Voltage has been falling for 15 seconds. ");
 
            situation=FAILING;
-      } else if ((voltsBefore - volts) > 3) { // if voltage has fallen but they haven't given up
+      } else if ((voltsBefore - voltish) > 3) { // if voltage has fallen but they haven't given up
        if (DEBUG) Serial.print("voltsBefore: ");
          if (DEBUG) Serial.println(voltsBefore);
   //     if (DEBUG) Serial.print("volts before: ");
@@ -378,7 +378,7 @@ if (situation != VICTORY && situation == PLAYING) { // if we're not in VICTORY m
     }
  // }
 
-  if (volts < ledLevels[NUM_LEDS-1]){
+  if (voltish < ledLevels[NUM_LEDS-1]){
       topLevelTime = time; // reset timer unless you're at top level
 //  if (DEBUG) Serial.println(topLevelTime);
 }
@@ -388,7 +388,7 @@ if (situation != VICTORY && situation == PLAYING) { // if we're not in VICTORY m
  //   if (DEBUG) Serial.println(volts);
 };*/
 
-  if (situation == PLAYING && time - topLevelTime > WINTIME && volts >= ledLevels[NUM_LEDS - 1]) { // it's been WINTIME milliseconds of solid top-level action!
+  if (situation == PLAYING && time - topLevelTime > WINTIME && voltish >= ledLevels[NUM_LEDS - 1]) { // it's been WINTIME milliseconds of solid top-level action!
 
     if (situation != VICTORY) victoryTime = time; // record the start time of victory
     situation = VICTORY;
