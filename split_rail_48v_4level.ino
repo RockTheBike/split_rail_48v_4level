@@ -187,12 +187,6 @@ void loop() {
     situation = FAILING;
   }
 
-  if (time - serialTime < SERIALTIMEOUT) {
-    Serial.print("received a valid data = ");
-    Serial.println(otherLevel);
-    serialTime = 0; // we got it
-  }
-
 /*
 Situation is either:
 IDLING
@@ -420,6 +414,7 @@ void readSerial() {
       otherLevel -= 48; // make it an actual number like 'presentLevel'
     }
   }
+  if (time - serialTime > SERIALTIMEOUT) otherLevel = 0; // if the data is expired, assume zero
 }
 
 #define FAKEDIVISOR 2800 // 2026 allows doubling of voltage, 3039 allows 50% increase, etc..
