@@ -61,7 +61,7 @@ int analogState[NUM_LEDS] = {0}; // stores the last analogWrite() value for each
                                  // so we don't analogWrite unnecessarily!
 
 #define AVG_CYCLES 50 // average measured values over this many samples
-#define DISPLAY_INTERVAL 2000 // when auto-display is on, display every this many milli-seconds
+#define DISPLAY_INTERVAL 500 // when auto-display is on, display every this many milli-seconds
 #define LED_UPDATE_INTERVAL 1000
 #define D4_AVG_PERIOD 10000
 #define BLINK_PERIOD 600
@@ -261,14 +261,6 @@ FAILING is for voltage (actual, not adjusted) to fall below 13.5 .
       } else {
         timeSinceVoltageBeganFalling = 0;
       }
-        if (DEBUG) Serial.print("Volts: ");
-        if (DEBUG) Serial.print(volts);
-
-      if (DEBUG) Serial.print("Voltage has been flat or falling for ");
-         if (DEBUG) Serial.print(timeSinceVoltageBeganFalling);
-       if (DEBUG) Serial.print(" seconds. & volts2Secondsago = ");
-        if (DEBUG) Serial.println(volts2SecondsAgo);
-
 
   // if (DEBUG) Serial.println("hello");
     vRTime += 1000; // add a second to the timer index
@@ -292,36 +284,20 @@ FAILING is for voltage (actual, not adjusted) to fall below 13.5 .
     if (DEBUG) Serial.println(voltsBefore); */
 
   }
-// if just began don't change from idling yet.
-if (situation == JUSTBEGAN) {
-  if (DEBUG) Serial.println("Just Began");
-  //  if (DEBUG) Serial.println(volts);
-
-  }
 // Am I idling?
 
 if (volts < 13.5 && situation == FAILING ){
- situation = IDLING; //FAILING worked! we brought the voltage back to under 14.
-   if (DEBUG) Serial.print("got to IDLING 1");
-   // if (DEBUG) Serial.println(volts);
-
-   delay(2000);
-        digitalWrite(RELAYPIN, LOW);
-    relayState = STATE_OFF;
-    if (DEBUG) Serial.println("RELAY STATE CHANGED");
-  }
-
-
+  situation = IDLING; //FAILING worked! we brought the voltage back to under 14.
+  if (DEBUG) Serial.print("got to IDLING 1");
+  delay(2000);
+  digitalWrite(RELAYPIN, LOW);
+  relayState = STATE_OFF;
+  if (DEBUG) Serial.println("RELAY CLOSED");
+}
 
 if (volts < 12 && situation != PLAYING && situation != JUSTBEGAN) {
-    situation = IDLING;
- //   if (DEBUG) Serial.print("IDLING, volts=");
-  //  if (DEBUG) Serial.println(volts);
-
-  }
-
-// if (DEBUG) Serial.print("
-
+  situation = IDLING;
+}
 
 volts2SecondsAgo =  voltRecord[(vRIndex + VRSIZE - 2) % VRSIZE]; // voltage LOSESECONDS ago
  // if (DEBUG) Serial.print("Volts 2 seconds ago.");
@@ -334,14 +310,9 @@ if (situation==IDLING){
 
   if (voltish - volts2SecondsAgo > 0.4){ // need to get past startup sequences
 
- if (DEBUG) Serial.print("Volts 2 seconds ago: ");
-if (DEBUG) Serial.print (volts2SecondsAgo);
- if (DEBUG) Serial.print(", volts: ");
-if (DEBUG) Serial.print (volts);
-
 //   if (DEBUG) Serial.println ("hey");
     situation = PLAYING;
-   timeSinceVoltageBeganFalling = 0;
+    timeSinceVoltageBeganFalling = 0;
     voltsBefore = voltish;
     resetVoltRecord();
     if (DEBUG) Serial.println("got to PLAYING 1");// pedaling has begun in earnest
@@ -382,7 +353,6 @@ if (situation != VICTORY && situation == PLAYING) { // if we're not in VICTORY m
 
   if (voltish < ledLevels[NUM_LEDS-1]){
       topLevelTime = time; // reset timer unless you're at top level
-//  if (DEBUG) Serial.println(topLevelTime);
 }
 
 /*if (volts >= ledLevels[NUM_LEDS - 1]){
@@ -416,7 +386,7 @@ if (situation != VICTORY && situation == PLAYING) { // if we're not in VICTORY m
   if(time - timeDisplay > DISPLAY_INTERVAL){
     // printWatts();
     //    printWattHours();
-  //  printDisplay();
+    printDisplay();
     timeDisplay = time;
   }
 
@@ -612,9 +582,8 @@ void doLeds(){
 //       Open the Relay so volts can drop;
     digitalWrite(RELAYPIN, HIGH);
     relayState = STATE_ON;
-      if (DEBUG) Serial.println("RELAY STATE CHANGED");
-
-    }
+    if (DEBUG) Serial.println("RELAY OPEN");
+  }
 
 
 
@@ -667,14 +636,13 @@ void doSafety() {
   if (volts > MAX_VOLTS){
     digitalWrite(RELAYPIN, HIGH);
     relayState = STATE_ON;
-    if (DEBUG) Serial.println("Safety trip!");
-      if (DEBUG) Serial.println("RELAY STATE CHANGED");
+    if (DEBUG) Serial.println("RELAY OPEN");
   }
 
   if (relayState == STATE_ON && situation != FAILING && volts < RECOVERY_VOLTS){
     digitalWrite(RELAYPIN, LOW);
     relayState = STATE_OFF;
-      if (DEBUG) Serial.println("RELAY STATE CHANGED");
+    if (DEBUG) Serial.println("RELAY CLOSED");
   }
 
   if (volts > DANGER_VOLTS){
@@ -797,14 +765,17 @@ void printWattHours(){
 
 void printDisplay(){
   if (DEBUG) Serial.print(volts);
-  if (DEBUG) Serial.print("v (");
-  if (DEBUG) Serial.print(analogRead(VOLTPIN));
+  if (DEBUG) Serial.print("v ");
+  // if (DEBUG) Serial.print(analogRead(VOLTPIN));
   if (DEBUG) Serial.print("   Situation: ");
   if (DEBUG) Serial.print(situation);
-    if (DEBUG) Serial.print("   Time: ");
-  if (DEBUG) Serial.print(time);
-    if (DEBUG) Serial.print("   VictoryTime: ");
-  if (DEBUG) Serial.println(victoryTime);
+  if (DEBUG) Serial.print("  time - topLevelTime: ");
+  if (DEBUG) Serial.print(time - topLevelTime);
+  if (DEBUG) Serial.print("  Voltage has been flat or falling for ");
+  if (DEBUG) Serial.print(timeSinceVoltageBeganFalling);
+  if (DEBUG) Serial.print(" seconds. & volts2Secondsago = ");
+  if (DEBUG) Serial.println(volts2SecondsAgo);
+
   //   if (DEBUG) Serial.print("   ledLevels[numLEDS]: ");
  // if (DEBUG) Serial.println(ledLevels[NUM_LEDS]);
    //    if (DEBUG) Serial.print("   ledLevels[numLEDS- 1]: ");
