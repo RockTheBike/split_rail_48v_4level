@@ -162,7 +162,7 @@ void setup() {
   // init LED pins
   for(i = 0; i < NUM_LEDS; i++) {
     pinMode(ledPins[i],OUTPUT);
-      digitalWrite(i,LOW);
+      digitalWrite(ledPins[i]i,LOW);
   }
   situation = JUSTBEGAN;
   timeDisplay = millis();
@@ -623,7 +623,8 @@ void doLeds(){
 
 void turnThemOffOneAtATime(){
         //Go into party mode
-  for (i = 0; i < NUM_LEDS; i++) digitalWrite(i, HIGH); // turn on all levels
+  for (i = 0; i < NUM_LEDS; i++) digitalWrite(ledPins[i], HIGH); // turn on all levels
+  delay(200);
   for (i = NUM_LEDS - 2; i >= 0; i--) { // leave the top halogen level ON
     digitalWrite(ledPins[i], LOW); // turn them off one at a time
     if (DEBUG) Serial.print(i);
