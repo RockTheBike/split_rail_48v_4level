@@ -135,7 +135,7 @@ unsigned long timefailurestarted = 0;
 unsigned long timeArbduinoTurnedOn = 0;
 unsigned long clearlyLosingTime = 0; // time when we last were NOT clearly losing
 unsigned long serialTime = 0; // time when last serial data was seen
-#define SERIALTIMEOUT 2000 // if serial data is older than this, ignore it
+#define SERIALTIMEOUT 500 // if serial data is older than this, ignore it
 byte otherLevel = 0; // byte we read from the other utility box
 byte presentLevel = 0;  // what "level" of transistors are we lit up to right now?
 
