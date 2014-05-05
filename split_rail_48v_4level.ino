@@ -379,13 +379,13 @@ if (situation != VICTORY && situation == PLAYING) { // if we're not in VICTORY m
 }
 
 void clearlyWinning() { // adjusts voltishFactor according to whether we're clearly losing
-  if (otherLevel < (presentLevel + 2)) clearlyLosingTime = time; // reset the timer if we're not losing
+  if ((otherLevel != 's') && (otherLevel < (presentLevel + 2))) clearlyLosingTime = time; // reset the timer if we're not losing
   if (time - clearlyLosingTime > 2000) { // we ARE clearly losing, so let's adjust voltishFactor
     if (voltishFactor  < 1.5) voltishFactor  += 0.1; // increase our fakery
     clearlyLosingTime = time; // reset the timer since we made the adjustment
   }
   if (situation == FAILING) voltishFactor  = 1.0; // reset voltishFactor  since we've failed
-  voltish = (volts + voltishFactor); // calculate the adjusted voltage
+  voltish = (volts * voltishFactor); // calculate the adjusted voltage
 }
 
 void sendSerial() {
@@ -404,7 +404,9 @@ void readSerial() {
       serialTime = time; // if we got here, it must be another sLEDgehammer
       otherLevel -= 48; // make it an actual number like 'presentLevel'
       Serial.print("r");
-      Serial.println(otherLevel);
+      Serial.print(otherLevel);
+      Serial.print("vF");
+      Serial.println(voltishFactor);
     }
   }
   if ((time - serialTime > SERIALTIMEOUT) && (otherLevel != 's')) otherLevel = 0; // if the data is expired, assume zero
