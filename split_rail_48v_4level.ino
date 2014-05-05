@@ -280,15 +280,6 @@ FAILING is for voltage (actual, not adjusted) to fall below 13.5 .
   }
 // Am I idling?
 
-if (volts < 13.5 && situation == FAILING ){
-  situation = IDLING; //FAILING worked! we brought the voltage back to under 14.
-  if (DEBUG) Serial.print("got to IDLING 1");
-  delay(2000);
-  digitalWrite(RELAYPIN, LOW);
-  relayState = STATE_OFF;
-  if (DEBUG) Serial.println("RELAY CLOSED");
-}
-
 if (volts < 12 && situation != PLAYING && situation != JUSTBEGAN) {
   situation = IDLING;
 }
@@ -573,13 +564,6 @@ void doLeds(){
     //  if (DEBUG) Serial.println(volts);
       }
 
-  if (situation == FAILING && relayState!=STATE_ON && (time - timefailurestarted) > 10000 ) {
-//       Open the Relay so volts can drop;
-    digitalWrite(RELAYPIN, HIGH);
-    relayState = STATE_ON;
-    if (DEBUG) Serial.println("RELAY OPEN");
-  }
-
 
 
   // loop through each led and turn on/off or adjust PWM
@@ -648,6 +632,21 @@ void doSafety() {
   else {
     dangerState = STATE_OFF;
 
+  }
+
+  if (situation == FAILING && relayState!=STATE_ON && (time - timefailurestarted) > 10000 ) {
+//       Open the Relay so volts can drop;
+    digitalWrite(RELAYPIN, HIGH);
+    relayState = STATE_ON;
+    if (DEBUG) Serial.println("FAILING 10seconds: RELAY OPEN");
+  }
+
+  if (volts < 13.5 && situation == FAILING ){
+    situation = IDLING; //FAILING worked! we brought the voltage back to under 14.
+    delay(2000);
+    digitalWrite(RELAYPIN, LOW);
+    relayState = STATE_OFF;
+    if (DEBUG) Serial.println("got to IDLING 1: RELAY CLOSED");
   }
 }
 
