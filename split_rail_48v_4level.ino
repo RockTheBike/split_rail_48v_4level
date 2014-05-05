@@ -1,4 +1,4 @@
-#define BAUD_RATE 9600
+#define BAUD_RATE 1200
 #define DEBUG 0 // set to 1 to enable serial information printing
 /**** Single-rail Pedalometer
  * Arduino code to run the Dance with Lance Arbduino
@@ -391,8 +391,8 @@ void clearlyWinning() { // adjusts voltishFactor according to whether we're clea
 void sendSerial() {
   if (DEBUG == 0) {
     Serial.print("s"); // send an "s" to say we're a sledge here!
-    if (presentLevel >= 0 && presentLevel <= 10) Serial.print(char(presentLevel+48)); // send a : if presentLevel is 10(victory)
-    delay(10); // let's not crash the computer with too much serial data
+    if (presentLevel >= 0 && presentLevel <= 10) Serial.println(char(presentLevel+48)); // send a : if presentLevel is 10(victory)
+    delay(50); // let's not crash the computer with too much serial data
   }
 }
 
@@ -403,9 +403,11 @@ void readSerial() {
     if (otherLevel >= '0' && otherLevel <= ':' && previousByte == 's') {
       serialTime = time; // if we got here, it must be another sLEDgehammer
       otherLevel -= 48; // make it an actual number like 'presentLevel'
+      Serial.print("r");
+      Serial.println(otherLevel);
     }
   }
-  if (time - serialTime > SERIALTIMEOUT) otherLevel = 0; // if the data is expired, assume zero
+  if ((time - serialTime > SERIALTIMEOUT) && (otherLevel != 's')) otherLevel = 0; // if the data is expired, assume zero
 }
 
 #define FAKEDIVISOR 2800 // 2026 allows doubling of voltage, 3039 allows 50% increase, etc..
