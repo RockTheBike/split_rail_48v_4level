@@ -391,7 +391,8 @@ void clearlyWinning() { // adjusts voltishFactor according to whether we're clea
 void sendSerial() {
   if (DEBUG == 0) {
     Serial.print("s"); // send an "s" to say we're a sledge here!
-    if (presentLevel >= 0 && presentLevel <= 10) Serial.println(char(presentLevel+48)); // send a : if presentLevel is 10(victory)
+    if (presentLevel >= 0 && presentLevel <= 10) Serial.print(char(presentLevel+48)); // send a : if presentLevel is 10(victory)
+    // DON'T DO A PRINTLN BECAUSE THE NEWLINE IS AN ASCII 10 AND WILL BE DETECTED AS VICTORY GODDAMMIT
     delay(50); // let's not crash the computer with too much serial data
   }
 }
@@ -403,10 +404,6 @@ void readSerial() {
     if ((otherLevel >= 48) && (otherLevel <= 58) && (previousByte == 's')) {
       serialTime = time; // if we got here, it must be another sLEDgehammer
       otherLevel -= 48; // make it an actual number like 'presentLevel'
-      Serial.print("r");
-      Serial.print(otherLevel);
-      Serial.print("vF");
-      Serial.println(voltishFactor);
     }
   }
   if ((time - serialTime > SERIALTIMEOUT) && (otherLevel != 's')) otherLevel = 0; // if the data is expired, assume zero
