@@ -494,6 +494,7 @@ void doLeds(){
   }
 
   if (situation == VICTORY) presentLevel = 10; // tell the other box we won!
+  if (situation == FAILING) presentLevel = 0; // tell the other box the sad truth
 
   // if voltage is below the lowest level, blink the lowest level
   if (voltish < ledLevels[0]){
