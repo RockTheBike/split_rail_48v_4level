@@ -135,6 +135,8 @@ unsigned long timeArbduinoTurnedOn = 0;
 unsigned long clearlyLosingTime = 0; // time when we last were NOT clearly losing
 unsigned long serialTime = 0; // time when last serial data was seen
 #define SERIALTIMEOUT 500 // if serial data is older than this, ignore it
+#define SERIALINTERVAL 300 // how much time between sending a serial packet
+unsigned long serialSent = 0; // last time serial packet was sent
 byte otherLevel = 0; // byte we read from the other utility box
 byte presentLevel = 0;  // what "level" of transistors are we lit up to right now?
 
@@ -178,7 +180,10 @@ void loop() {
   doSafety();
   fakeVoltage(); // adjust 'volts' according to knob
   clearlyWinning(); // check to see if we're clearly losing and update 'voltish'
-  sendSerial();  // tell other box our presentLevel
+  if (time - serialSent > SERIALINTERVAL) {
+    sendSerial();  // tell other box our presentLevel
+    serialSent = time; // reset the timer
+  }
   readSerial();  // see if there's a byte waiting on the serial port from other sledgehammer
 
   if (otherLevel == 10) { // other box has won!  we lose.
