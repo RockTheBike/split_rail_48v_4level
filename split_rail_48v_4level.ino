@@ -1,4 +1,4 @@
-#define BAUD_RATE 1200
+#define BAUD_RATE 2400
 #define DEBUG 0 // set to 1 to enable serial information printing
 /**** Single-rail Pedalometer
  * Arduino code to run the Dance with Lance Arbduino
@@ -346,7 +346,13 @@ if (situation != VICTORY && situation == PLAYING) { // if we're not in VICTORY m
 
   if ((situation == PLAYING) && (time - topLevelTime > WINTIME) && (presentLevel == 9)) { // it's been WINTIME milliseconds of solid top-level action!
 
-    if (situation != VICTORY) victoryTime = time; // record the start time of victory
+    if (situation != VICTORY) {
+      victoryTime = time; // record the start time of victory
+      Serial.print("s:s:s:s:s:s:s:s:s:s:s:s:s:s:s:s:s:s:s:s:"); // tell the other box we won!
+      Serial.print("s:s:s:s:s:s:s:s:s:s:s:s:s:s:s:s:s:s:s:s:"); // tell the other box we won!
+      Serial.print("s:s:s:s:s:s:s:s:s:s:s:s:s:s:s:s:s:s:s:s:"); // tell the other box we won!
+      Serial.print("s:s:s:s:s:s:s:s:s:s:s:s:s:s:s:s:s:s:s:s:"); // tell the other box we won!
+    }
     situation = VICTORY;
    if (DEBUG) Serial.print("got to VICTORY 1");
  //   if (DEBUG) Serial.println(volts);
