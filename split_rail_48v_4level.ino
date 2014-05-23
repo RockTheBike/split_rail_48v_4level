@@ -1,5 +1,5 @@
-#define BAUD_RATE 2400
-#define DEBUG 0 // set to 1 to enable serial information printing
+#define BAUD_RATE 57600
+#define DEBUG 1 // set to 1 to enable serial information printing
 /**** Single-rail Pedalometer
  * Arduino code to run the Dance with Lance Arbduino
  * ver. 1.14
@@ -89,7 +89,7 @@ int fastBlinkState = 0;
 
 int voltsAdc = 0;
 float voltsAdcAvg = 0;
-float volts = 0;
+float volts,realVolts = 0;
 
 #define IDLING 0 // haven't been pedaled yet, or after draining is over
 #define CHARGING 1 // someone is pedalling, at least not letting voltage fall
@@ -134,6 +134,8 @@ unsigned long timefailurestarted = 0;
 unsigned long timeArbduinoTurnedOn = 0;
 unsigned long clearlyLosingTime = 0; // time when we last were NOT clearly losing
 unsigned long serialTime = 0; // time when last serial data was seen
+unsigned long drainedTime = 0; // time when volts was last OVER 13.5v
+#define EMPTYTIME 1000 // how long caps must be below 13.5v to be considered empty
 #define SERIALTIMEOUT 500 // if serial data is older than this, ignore it
 #define SERIALINTERVAL 300 // how much time between sending a serial packet
 unsigned long serialSent = 0; // last time serial packet was sent
@@ -178,6 +180,7 @@ void loop() {
   time = millis();
   getVolts();
   doSafety();
+  realVolts = volts; // save realVolts for printDisplay function
   fakeVoltage(); // adjust 'volts' according to knob
   clearlyWinning(); // check to see if we're clearly losing and update 'voltish'
   if (time - serialSent > SERIALINTERVAL) {
@@ -653,13 +656,17 @@ void doSafety() {
     relayState = STATE_ON;
     if (DEBUG) Serial.println("FAILING 10seconds: RELAY OPEN");
   }
-
-  if (volts < 13.5 && situation == FAILING ){
+  if (volts > 13.5) {
+    drainedTime = time;
+  } else {
+  //  Serial.print("X");
+  }
+  if ((time - drainedTime > EMPTYTIME) && situation == FAILING ){
     situation = IDLING; //FAILING worked! we brought the voltage back to under 14.
     delay(2000);
     digitalWrite(RELAYPIN, LOW);
     relayState = STATE_OFF;
-    if (DEBUG) Serial.println("got to IDLING 1: RELAY CLOSED");
+    if (DEBUG) Serial.println("EMPTYTIME, got to IDLING 1: RELAY CLOSED");
   }
 }
 
@@ -772,8 +779,12 @@ void printWattHours(){
 }
 
 void printDisplay(){
-  if (DEBUG) Serial.print(volts);
+  if (DEBUG) Serial.print(realVolts);
   if (DEBUG) Serial.print("v ");
+  if (DEBUG) Serial.print(volts);
+  if (DEBUG) Serial.print("fv ");
+  if (DEBUG && voltishFactor > 1.0) Serial.print(voltish);
+  if (DEBUG && voltishFactor > 1.0) Serial.print("voltish ");
   // if (DEBUG) Serial.print(analogRead(VOLTPIN));
   if (DEBUG) Serial.print("   Situation: ");
   if (DEBUG) Serial.print(situation);
