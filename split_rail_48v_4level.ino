@@ -254,7 +254,7 @@ FAILING is for voltage (actual, not adjusted) to fall below 13.5 .
      if (time-timeArbduinoTurnedOn > 2200) situation = IDLING;
    }
 //   || (voltish - volts2SecondsAgo) < 0.03 || (volts2SecondsAgo - voltish) < 0.03
-    if ( voltish <= volts2SecondsAgo) { // stuck or slow drift
+    if ( voltish < volts2SecondsAgo + 0.1) { // stuck or slow drift
         timeSinceVoltageBeganFalling++;
   //   if (DEBUG) Serial.print("Voltage has been falling for ");
     //     if (DEBUG) Serial.print(timeSinceVoltageBeganFalling);
@@ -316,7 +316,7 @@ if (situation=IDLING && (volts - voltRecord[(vRIndex-2)] > 0.2)){ //JAKE why did
 
 }
 
-   if (timeSinceVoltageBeganFalling > 15 && volts>13.5) {
+   if (timeSinceVoltageBeganFalling > 15 && volts>13.5 && situation != FAILING){
               Serial.println("Got to Failing. Voltage has been falling for 15 seconds. ");
 
            situation=FAILING;
@@ -428,7 +428,7 @@ void readSerial() {
   if ((time - serialTime > SERIALTIMEOUT) && (otherLevel != 's')) otherLevel = 0; // if the data is expired, assume zero
 }
 
-#define FAKEDIVISOR 2800 // 2026 allows doubling of voltage, 3039 allows 50% increase, etc..
+#define FAKEDIVISOR 2900 // 2026 allows doubling of voltage, 3039 allows 50% increase, etc..
 float fakeVoltage() {
   doKnob(); // read knob value into knobAdc
   float multiplier = (float)FAKEDIVISOR / (float)(FAKEDIVISOR - knobAdc);
@@ -624,12 +624,13 @@ void doLeds(){
 void turnThemOffOneAtATime(){
         //Go into party mode
   for (i = 0; i < NUM_LEDS; i++) digitalWrite(ledPins[i], HIGH); // turn on all levels
-  delay(200);
+  delay(500);
   for (i = NUM_LEDS - 2; i >= 0; i--) { // leave the top halogen level ON
+  delay(300);
     digitalWrite(ledPins[i], LOW); // turn them off one at a time
     if (DEBUG) Serial.print(i);
     if (DEBUG) Serial.println(" OFF");
-    delay(200);
+    delay(50);
   }
 }
 
@@ -669,6 +670,7 @@ void doSafety() {
   if ((time - drainedTime > EMPTYTIME) && situation == FAILING ){
     situation = IDLING; //FAILING worked! we brought the voltage back to under 14.
     delay(2000);
+    timeSinceVoltageBeganFalling = 0;
     digitalWrite(RELAYPIN, LOW);
     relayState = STATE_OFF;
     if (DEBUG) Serial.println("EMPTYTIME, got to IDLING 1: RELAY CLOSED");
