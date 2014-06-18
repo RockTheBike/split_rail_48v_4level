@@ -783,6 +783,8 @@ void printDisplay(){
   if (DEBUG) Serial.print("v ");
   if (DEBUG) Serial.print(volts);
   if (DEBUG) Serial.print("fv ");
+  if (DEBUG) Serial.print(knobAdc);
+  if (DEBUG) Serial.print("knobAdc ");
   if (DEBUG && voltishFactor > 1.0) Serial.print(voltish);
   if (DEBUG && voltishFactor > 1.0) Serial.print("voltish ");
   // if (DEBUG) Serial.print(analogRead(VOLTPIN));
