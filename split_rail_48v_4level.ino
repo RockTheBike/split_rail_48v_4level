@@ -316,6 +316,11 @@ if (situation=IDLING && (volts - voltRecord[(vRIndex-2)] > 0.2)){ //JAKE why did
 
 }
 
+   if (timeSinceVoltageBeganFalling > 15 && volts>13.5) {
+              Serial.println("Got to Failing. Voltage has been falling for 15 seconds. ");
+
+           situation=FAILING;
+      }
 
 if (situation != VICTORY && situation == PLAYING) { // if we're not in VICTORY mode...
 
