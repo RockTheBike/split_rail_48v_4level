@@ -23,20 +23,22 @@
  * 2.2 - JS => create branch 1b1i for onebike-oneinverter which buck converts up to 60V down to 12V for inverter
  * 2.3 - JS => create branch decida for split-rail system with automatic rail selection for pedallers (see decida.xcf)
  * 2.4 - JS => rip out a bunch of stuff that we haven't used in a long time
+ * 2.5 - JS => create branch 1b1l for onebike-onelaptop which buck converts up to 40.5V down to 19V for laptop/projector
 */
-char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility Box ver. 2.4 branch:1b1i";
+char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility Box ver. 2.5 branch:1b1l";
 
 // PINS
 #define RELAYPIN 2 // relay cutoff output pin // NEVER USE 13 FOR A RELAY
 #define VOLTPIN A0 // Voltage Sensor Pin
 #define AMPSPIN A3 // Current Sensor Pin
-#define NUM_LEDS 4 // Number of LED outputs.
-
+#define NUM_LEDS 3 // Number of LED outputs4
 const int ledPins[NUM_LEDS] = { // 12v LEDS POWERED BY ARBDUINO LM2576-HV
-  3, 5, 6, 11}; // pin 9 is used for buck converter
+  3, 6, 11}; // pin 9 is used for buck converter
 
-const float ledLevels[NUM_LEDS+1] = {
-  34.0, 42.0, 50.0, 58.0, 62.0};
+// levels at which each LED turns on (not including special states)
+const float ledLevels[5] = {
+  19.0, 23.0, 29.0, 38.0, 62.0};
+//f.red  red  grn   white  f.white
 
 #define BRIGHTNESSVOLTAGE 24.0  // voltage at which LED brightness starts to fold back
 #define BRIGHTNESSBASE 255  // maximum brightness value (255 is max value here)
@@ -71,11 +73,11 @@ int analogState[NUM_LEDS] = {0}; // stores the last analogWrite() value for each
 int ledState[NUM_LEDS] = {
   STATE_OFF};
 
-#define MAX_VOLTS 60.0  //
-#define RECOVERY_VOLTS 54.0
+#define MAX_VOLTS 40.5  //
+#define RECOVERY_VOLTS 34.0
 int relayState = STATE_OFF;
 
-#define DANGER_VOLTS 62.0
+#define DANGER_VOLTS 42.0
 int dangerState = STATE_OFF;
 
 int blinkState = 0;
@@ -157,7 +159,7 @@ void loop() {
 
 #define BUCK_CUTIN 11 // voltage above which transistors can start working
 #define BUCK_CUTOUT 10 // voltage below which transistors can not function
-#define BUCK_VOLTAGE 13.0 // target voltage for inverter to be supplied with
+#define BUCK_VOLTAGE 19.0 // target voltage for laptop to be supplied with
 #define BUCK_VOLTPIN A1 // this pin measures inverter's MINUS TERMINAL voltage
 #define BUCK_HYSTERESIS 0.75 // volts above BUCK_VOLTAGE where we start regulatin
 #define BUCK_PWM_UPJUMP 0.03 // amount to raise PWM value if voltage is below BUCK_VOLTAGE
