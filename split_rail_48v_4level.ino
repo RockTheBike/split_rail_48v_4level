@@ -37,7 +37,8 @@ const int ledPins[NUM_LEDS] = { // 12v LEDS POWERED BY ARBDUINO LM2576-HV
 
 // levels at which each LED turns on (not including special states)
 const float ledLevels[5] = {
-  19.0, 23.0, 29.0, 38.0, 62.0};
+  18.0, 23.0, 29.0, 37.0, 39.5};
+//  18.0, 23.0, 26.0, 27.0, 28.5};
 //f.red  red  grn   white  f.white
 
 #define BRIGHTNESSVOLTAGE 24.0  // voltage at which LED brightness starts to fold back
@@ -127,6 +128,7 @@ void setup() {
   timeDisplay = millis();
   // setPwmFrequency(3,1); // this sets the frequency of PWM on pins 3 and 11 to 31,250 Hz
   setPwmFrequency(9,1); // this sets the frequency of PWM on pins 9 and 10 to 31,250 Hz
+  digitalWrite(9,LOW);
   pinMode(9,OUTPUT); // this pin will control the transistors of the huge BUCK converter
 }
 
@@ -157,9 +159,9 @@ void loop() {
 
 }
 
-#define BUCK_CUTIN 11 // voltage above which transistors can start working
-#define BUCK_CUTOUT 10 // voltage below which transistors can not function
-#define BUCK_VOLTAGE 19.0 // target voltage for laptop to be supplied with
+#define BUCK_CUTIN 18 // voltage above which transistors can start working
+#define BUCK_CUTOUT 17.5 // voltage below which transistors can not function
+#define BUCK_VOLTAGE 18.1 // target voltage for laptop to be supplied with
 #define BUCK_VOLTPIN A1 // this pin measures inverter's MINUS TERMINAL voltage
 #define BUCK_HYSTERESIS 0.75 // volts above BUCK_VOLTAGE where we start regulatin
 #define BUCK_PWM_UPJUMP 0.03 // amount to raise PWM value if voltage is below BUCK_VOLTAGE
@@ -175,18 +177,18 @@ void doBuck() {
     }
 
     if ((volts > BUCK_VOLTAGE+BUCK_HYSTERESIS) && (buckPWM == 0)) { // begin PWM action
-      buckPWM = 255.0 * (1.0 - ((volts - BUCK_VOLTAGE) / BUCK_VOLTAGE)); // best guess for initial PWM value
+      buckPWM = 220.0 * (1.0 - ((volts - BUCK_VOLTAGE) / BUCK_VOLTAGE)); // low best guess for initial PWM value
       //      Serial.print("buckval=");
       //      Serial.println(buckPWM);
       analogWrite(9,(int) buckPWM); // actually set the thing in motion
     }
 
-    if ((volts > BUCK_VOLTAGE) && (buckPWM != 0)) { // adjust PWM value based on results
+    if ((volts > BUCK_VOLTAGE)) { // && (buckPWM != 0)) { // adjust PWM value based on results
       if (volts - voltsBuck > BUCK_VOLTAGE + BUCK_HYSTERESIS) { // inverter voltage is too high
         buckPWM -= BUCK_PWM_DOWNJUMP; // reduce PWM value to reduce inverter voltage
         if (buckPWM <= 0) {
           //          Serial.print("0");
-          buckPWM = 1; // minimum PWM value
+          buckPWM = 0; // minimum PWM value
         }
         if (lastBuckPWM != (int) buckPWM) { // only if the PWM value has changed should we...
           lastBuckPWM = (int) buckPWM;
@@ -257,33 +259,41 @@ void doBlink(){
 
 void doLeds(){
 
+  // Set the desired lighting states.
+
+
   for(i = 0; i < NUM_LEDS; i++) {
-    if(volts >= ledLevels[i]){
-      ledState[i]=STATE_ON;
+      ledState[i]=STATE_OFF;  // no light below level 0
+  }
+
+  if (volts > ledLevels[0]){ // blinking red
+    ledState[0]=STATE_BLINK; // blink red
+  }
+
+  if(volts > ledLevels[1]){ // solid red
+    ledState[0] = STATE_ON; // turn on red
+  }
+
+  if(volts > ledLevels[2]){
+    ledState[0] = STATE_OFF; // turn off red
+    ledState[1] = STATE_ON; // turn on green
+  }
+
+  if(volts > ledLevels[3]){ // white light
+    ledState[0] = STATE_ON; // turn on red
+    ledState[2] = STATE_ON; // turn on blue
+  }
+
+  if (volts > ledLevels[4]){ // blink white
+    for(i = 0; i < NUM_LEDS; i++) {
+      ledState[i] = STATE_BLINK;
     }
-    else
-      ledState[i]=STATE_OFF;
   }
 
-  // if voltage is below the lowest level, blink the lowest level
-  if (volts < ledLevels[0]){
-    ledState[0]=STATE_BLINK;
-  }
-
-  // turn off first x levels if voltage is above 3rd level
-  if(volts > ledLevels[1]){
-    ledState[0] = STATE_OFF;
-//    ledState[1] = STATE_OFF;
-  }
-
-  if (dangerState){
+  if (dangerState){ // in danger fastblink white
     for(i = 0; i < NUM_LEDS; i++) {
       ledState[i] = STATE_BLINKFAST;
     }
-  }
-
-  if (volts >= ledLevels[NUM_LEDS]) {// if at the top voltage level, blink last LEDS fast
-    ledState[NUM_LEDS-1] = STATE_BLINKFAST; // last set of LEDs
   }
 
   // loop through each led and turn on/off or adjust PWM
@@ -384,15 +394,17 @@ void printWattHours(){
 void printDisplay(){
   Serial.print(volts);
   Serial.print("v (");
-  Serial.println(analogRead(VOLTPIN));
+  Serial.print(analogRead(VOLTPIN));
   //  Serial.print(", a: ");
   //  Serial.print(amps);
   //  Serial.print(", va: ");
   //  Serial.print(watts);
-  //  Serial.print(", voltsBuck: ");
-  //  Serial.print(voltsBuck);
-  //  Serial.print(", inverter: ");
-  //  Serial.print(volts-voltsBuck);
+  Serial.print("), voltsBuck: ");
+  Serial.print(voltsBuck);
+  Serial.print("v, laptop: ");
+  Serial.print(volts-voltsBuck);
+  Serial.print("v, buckval=");
+  Serial.println(buckPWM);
 
   //  Serial.print(", Levels ");
   //  for(i = 0; i < NUM_LEDS; i++) {
