@@ -24,6 +24,7 @@
  * 2.3 - JS => create branch decida for split-rail system with automatic rail selection for pedallers (see decida.xcf)
  * 2.4 - JS => rip out a bunch of stuff that we haven't used in a long time
  * 2.5 - JS => create branch 1b1l for onebike-onelaptop which buck converts up to 40.5V down to 19V for laptop/projector
+ * 2.6 - JS => create branch 1b10usb for onebike-10usb which allows up to 27.0V down to 7V for 10 USB ports
 */
 char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility Box ver. 2.5 branch:1b1l";
 
