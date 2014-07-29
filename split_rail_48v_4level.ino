@@ -26,19 +26,21 @@
  * 2.5 - JS => create branch 1b1l for onebike-onelaptop which buck converts up to 40.5V down to 19V for laptop/projector
  * 2.6 - JS => create branch 1b10usb for onebike-10usb which allows up to 27.0V down to 7V for 10 USB ports
 */
-char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility Box ver. 2.5 branch:1b1l";
+char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility Box ver. 2.6 branch:1b10usb";
+
+#include <Adafruit_NeoPixel.h>
+#define LEDSTRIPPIN 7 // what pin the data input to the LED strip is connected to
+#define NUMLEDS 9 // how many LEDs on the strip
+Adafruit_NeoPixel ledstrip = Adafruit_NeoPixel(NUMLEDS, LEDSTRIPPIN, NEO_GRB + NEO_KHZ800);
 
 // PINS
 #define RELAYPIN 2 // relay cutoff output pin // NEVER USE 13 FOR A RELAY
 #define VOLTPIN A0 // Voltage Sensor Pin
 #define AMPSPIN A3 // Current Sensor Pin
-#define NUM_LEDS 3 // Number of LED outputs4
-const int ledPins[NUM_LEDS] = { // 12v LEDS POWERED BY ARBDUINO LM2576-HV
-  3, 6, 11}; // pin 9 is used for buck converter
 
-// levels at which each LED turns on (not including special states)
-const float ledLevels[5] = {
-  18.0, 23.0, 29.0, 37.0, 39.5};
+// levels at which each LED turns green (normally all red unless below first voltage)
+const float ledLevels[11] = {
+  7.0, 9.0, 11.0, 13.0, 15.0, 17, 19, 21, 23, 25, 27};
 //  18.0, 23.0, 26.0, 27.0, 28.5};
 //f.red  red  grn   white  f.white
 
@@ -75,11 +77,11 @@ int analogState[NUM_LEDS] = {0}; // stores the last analogWrite() value for each
 int ledState[NUM_LEDS] = {
   STATE_OFF};
 
-#define MAX_VOLTS 40.5  //
-#define RECOVERY_VOLTS 34.0
+#define MAX_VOLTS 27.0  //
+#define RECOVERY_VOLTS 24.0
 int relayState = STATE_OFF;
 
-#define DANGER_VOLTS 42.0
+#define DANGER_VOLTS 27.5
 int dangerState = STATE_OFF;
 
 int blinkState = 0;
@@ -136,8 +138,7 @@ void setup() {
 void loop() {
   time = millis();
   getVolts();
-  brightness = 255; // disable PWM for 12v LEDs powered by LM2576-HV arbduino regulator
-  doBuck(); // adjust inverter voltage
+  // doBuck(); // adjust inverter voltage
   doSafety();
   //  getAmps();  // only if we have a current sensor
   //  calcWatts(); // also adds in knob value for extra wattage, unless commented out
