@@ -30,8 +30,9 @@ char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility B
 
 #include <Adafruit_NeoPixel.h>
 #define LEDSTRIPPIN 7 // what pin the data input to the LED strip is connected to
-#define NUMLEDS 9 // how many LEDs on the strip
-Adafruit_NeoPixel ledstrip = Adafruit_NeoPixel(NUMLEDS, LEDSTRIPPIN, NEO_GRB + NEO_KHZ800);
+#define NUMLEDS 6 // how many LEDs on the strip
+Adafruit_NeoPixel ledStrip = Adafruit_NeoPixel(NUMLEDS, LEDSTRIPPIN, NEO_GRB + NEO_KHZ800);
+#define ledBrightness 127 // brightness of addressible LEDs (0 to 255)
 
 // PINS
 #define RELAYPIN 2 // relay cutoff output pin // NEVER USE 13 FOR A RELAY
@@ -39,32 +40,14 @@ Adafruit_NeoPixel ledstrip = Adafruit_NeoPixel(NUMLEDS, LEDSTRIPPIN, NEO_GRB + N
 #define AMPSPIN A3 // Current Sensor Pin
 
 // levels at which each LED turns green (normally all red unless below first voltage)
-const float ledLevels[11] = {
-  7.0, 9.0, 11.0, 13.0, 15.0, 17, 19, 21, 23, 25, 27};
-//  18.0, 23.0, 26.0, 27.0, 28.5};
-//f.red  red  grn   white  f.white
-
-#define BRIGHTNESSVOLTAGE 24.0  // voltage at which LED brightness starts to fold back
-#define BRIGHTNESSBASE 255  // maximum brightness value (255 is max value here)
-int brightness = 0;  // analogWrite brightness value, updated by getVoltageAndBrightness()
-#define BRIGHTNESSFACTOR (BRIGHTNESSBASE / BRIGHTNESSVOLTAGE) / 2 // results in half PWM at double voltage
-// for every volt over BRIGHTNESSVOLTAGE, pwm is reduced by BRIGHTNESSFACTOR from BRIGHTNESSBASE
-
-// FAKE AC POWER VARIABLES
-#define KNOBPIN A2
-int knobAdc = 0;
-void doKnob(){ // look in calcWatts() to see if this is commented out
-  knobAdc = analogRead(KNOBPIN) - 10; // make sure not to add if knob is off
-  if (knobAdc < 0) knobAdc = 0; // values 0-10 count as zero
-}
-
-int analogState[NUM_LEDS] = {0}; // stores the last analogWrite() value for each LED
-                                 // so we don't analogWrite unnecessarily!
+const float ledLevels[8] = {
+  // 7.0, 11.0, 15.59, 19.08, 22.05, 24.64, 27}; // sixths of energy stored
+  7.0, 10.20, 14.42, 17.66, 20.40, 22.80, 24.98, 27.0}; // sevenths of energy stored
+//red  1grn   2grn   3grn   4grn   5grn   6grn   white
 
 #define AVG_CYCLES 50 // average measured values over this many samples
 #define DISPLAY_INTERVAL 2000 // when auto-display is on, display every this many milli-seconds
 #define LED_UPDATE_INTERVAL 1000
-#define D4_AVG_PERIOD 10000
 #define BLINK_PERIOD 600
 #define FAST_BLINK_PERIOD 150
 
@@ -72,10 +55,6 @@ int analogState[NUM_LEDS] = {0}; // stores the last analogWrite() value for each
 #define STATE_BLINK 1
 #define STATE_BLINKFAST 3
 #define STATE_ON 2
-
-// on/off/blink/fastblink state of each led
-int ledState[NUM_LEDS] = {
-  STATE_OFF};
 
 #define MAX_VOLTS 27.0  //
 #define RECOVERY_VOLTS 24.0
@@ -115,24 +94,33 @@ unsigned long wattHourTimer = 0;
 // var for looping through arrays
 int i = 0;
 
+uint32_t red; // needs to be initialized with .Color() in setup()
+uint32_t green; // needs to be initialized with .Color() in setup()
+uint32_t blue; // needs to be initialized with .Color() in setup()
+uint32_t white; // needs to be initialized with .Color() in setup()
+uint32_t dark; // needs to be initialized with .Color() in setup()
+
 void setup() {
   Serial.begin(BAUD_RATE);
 
   Serial.println(versionStr);
 
   pinMode(RELAYPIN, OUTPUT);
-  digitalWrite(RELAYPIN,LOW);
 
-  // init LED pins
-  for(i = 0; i < NUM_LEDS; i++) {
-    pinMode(ledPins[i],OUTPUT);
-  }
+  ledStrip.begin(); // initialize the addressible LEDs
+  ledStrip.show(); // clear their state
+
+  red = ledStrip.Color(ledBrightness,0,0); // load these handy Colors
+  green = ledStrip.Color(0,ledBrightness,0);
+  blue = ledStrip.Color(0,0,ledBrightness);
+  white = ledStrip.Color(ledBrightness,ledBrightness,ledBrightness);
+  dark = ledStrip.Color(11,11,11);
 
   timeDisplay = millis();
   // setPwmFrequency(3,1); // this sets the frequency of PWM on pins 3 and 11 to 31,250 Hz
-  setPwmFrequency(9,1); // this sets the frequency of PWM on pins 9 and 10 to 31,250 Hz
-  digitalWrite(9,LOW);
-  pinMode(9,OUTPUT); // this pin will control the transistors of the huge BUCK converter
+  // setPwmFrequency(9,1); // this sets the frequency of PWM on pins 9 and 10 to 31,250 Hz
+  // digitalWrite(9,LOW);
+  // pinMode(9,OUTPUT); // this pin will control the transistors of the huge BUCK converter
 }
 
 void loop() {
@@ -261,75 +249,34 @@ void doBlink(){
 
 void doLeds(){
 
-  // Set the desired lighting states.
-
-
-  for(i = 0; i < NUM_LEDS; i++) {
-      ledState[i]=STATE_OFF;  // no light below level 0
-  }
-
-  if (volts > ledLevels[0]){ // blinking red
-    ledState[0]=STATE_BLINK; // blink red
-  }
-
-  if(volts > ledLevels[1]){ // solid red
-    ledState[0] = STATE_ON; // turn on red
-  }
-
-  if(volts > ledLevels[2]){
-    ledState[0] = STATE_OFF; // turn off red
-    ledState[1] = STATE_ON; // turn on green
-  }
-
-  if(volts > ledLevels[3]){ // white light
-    ledState[0] = STATE_ON; // turn on red
-    ledState[2] = STATE_ON; // turn on blue
-  }
-
-  if (volts > ledLevels[4]){ // blink white
-    for(i = 0; i < NUM_LEDS; i++) {
-      ledState[i] = STATE_BLINK;
+  for(i = 0; i < 8; i++) { // go through all voltages in ledLevels[]
+    if (volts < ledLevels[0]) { // if voltage below minimum
+      ledStrip.setPixelColor(i,dark);  // all lights out
+    } else if (volts > ledLevels[7]) { // if voltage at highest level
+      if (blinkState) { // make the lights blink
+        ledStrip.setPixelColor(i,white);  // blinking white
+      } else {
+        ledStrip.setPixelColor(i,dark);  // blinking dark
+      }
+    } else { // voltage somewhere in between
+      ledStrip.setPixelColor(i,red);  // otherwise red
+      if (volts > ledLevels[i+1]) { // but if enough voltage
+        ledStrip.setPixelColor(i,green);  // gas gauge effect
+      }
     }
   }
 
   if (dangerState){ // in danger fastblink white
-    for(i = 0; i < NUM_LEDS; i++) {
-      ledState[i] = STATE_BLINKFAST;
+    for(i = 0; i < NUMLEDS; i++) {
+      if (fastBlinkState) { // make the lights blink FAST
+        ledStrip.setPixelColor(i,white);  // blinking white
+      } else {
+        ledStrip.setPixelColor(i,dark);  // blinking dark
+      }
     }
   }
 
-  // loop through each led and turn on/off or adjust PWM
-
-  for(i = 0; i < NUM_LEDS; i++) {
-    if(ledState[i]==STATE_ON){
-      //      digitalWrite(ledPins[i], HIGH);
-      if (analogState[i] != brightness) analogWrite(ledPins[i], brightness); // don't analogWrite unnecessarily!
-      analogState[i] = brightness;
-    }
-    else if (ledState[i]==STATE_OFF){
-      digitalWrite(ledPins[i], LOW);
-      analogState[i] = 0;
-    }
-    else if (ledState[i]==STATE_BLINK && blinkState==1){
-      //      digitalWrite(ledPins[i], HIGH);
-      if (analogState[i] != brightness) analogWrite(ledPins[i], brightness); // don't analogWrite unnecessarily!
-      analogState[i] = brightness;
-    }
-    else if (ledState[i]==STATE_BLINK && blinkState==0){
-      digitalWrite(ledPins[i], LOW);
-      analogState[i] = 0;
-    }
-    else if (ledState[i]==STATE_BLINKFAST && fastBlinkState==1){
-      //      digitalWrite(ledPins[i], HIGH);
-      if (analogState[i] != brightness) analogWrite(ledPins[i], brightness); // don't analogWrite unnecessarily!
-      analogState[i] = brightness;
-    }
-    else if (ledState[i]==STATE_BLINKFAST && fastBlinkState==0){
-      digitalWrite(ledPins[i], LOW);
-      analogState[i] = 0;
-    }
-  }
-
+  ledStrip.show(); // actually update the LED strip
 } // END doLeds()
 
 void getAmps(){
@@ -346,13 +293,6 @@ void getVolts(){
   voltsBuckAdc = analogRead(BUCK_VOLTPIN);
   voltsBuckAvg = average(voltsBuckAdc, voltsBuckAvg);
   voltsBuck = adc2volts(voltsBuckAvg);
-
-  //  brightness = 255 - BRIGHTNESSBASE * (1.0 - (brightnessKnobFactor * (1023 - analogRead(knobpin))));  // the knob affects brightnes
-
-  brightness = BRIGHTNESSBASE;  // full brightness unless dimming is required
-  if (volts > BRIGHTNESSVOLTAGE)
-    brightness -= (BRIGHTNESSFACTOR * (volts - BRIGHTNESSVOLTAGE));  // brightness is reduced by overvoltage
-  // this means if voltage is 28 volts over, PWM will be 255 - (28*4.57) or 127, 50% duty cycle
 }
 
 float average(float val, float avg){
