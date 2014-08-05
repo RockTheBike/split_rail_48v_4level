@@ -230,7 +230,7 @@ void circlingAnimation() {
   static int old_frame_index;
   static int new_frame_index = 0;
   static unsigned long time_for_next_frame;
-  const int frames[][NUM_LEDS] = {
+  const int frames_single_clockwise[][NUM_LEDS] = {
     { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
     { 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
     { 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0 },
@@ -239,6 +239,21 @@ void circlingAnimation() {
     { 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0 },
     { 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0 },
     { 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0 } };
+  const int frames_double_wide[][NUM_LEDS] = {
+    { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0 },
+    { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0 } };
+  const int frames_opposite[][NUM_LEDS] = {
+    { 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0 },
+    { 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0 },
+    { 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0 },
+    { 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0 } };
+  #define frames frames_double_wide
   // advance to (or initialize) the next frame when necessary
   if( time >= time_for_next_frame ) {
     // we want 0->2000, 14->50, 13->100
