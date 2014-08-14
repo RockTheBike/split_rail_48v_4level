@@ -24,7 +24,7 @@
  * 2.3 - JS => create branch decida for split-rail system with automatic rail selection for pedallers (see decida.xcf)
  * 2.4 - JS => rip out a bunch of stuff that we haven't used in a long time
 */
-char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility Box ver. 2.4";
+char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility Box ver. 2.4 branch buck";
 
 // PINS
 #define RELAYPIN 2 // relay cutoff output pin // NEVER USE 13 FOR A RELAY
@@ -32,7 +32,7 @@ char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility B
 #define AMPSPIN A3 // Current Sensor Pin
 #define NUM_LEDS 4 // Number of LED outputs.
 const int ledPins[NUM_LEDS] = {
-  3, 9, 10, 11};
+  3, 5, 6, 11};
 
 // levels at which each LED turns on (not including special states)
 const float ledLevels[NUM_LEDS+1] = {
@@ -123,15 +123,15 @@ void setup() {
   }
 
   timeDisplay = millis();
-  setPwmFrequency(3,1); // this sets the frequency of PWM on pins 3 and 11 to 31,250 Hz
+  // setPwmFrequency(3,1); // this sets the frequency of PWM on pins 3 and 11 to 31,250 Hz
   setPwmFrequency(9,1); // this sets the frequency of PWM on pins 9 and 10 to 31,250 Hz
-  //  pinMode(9,OUTPUT); // this pin will control the transistors of the huge BUCK converter
+  pinMode(9,OUTPUT); // this pin will control the transistors of the huge BUCK converter
 }
 
 void loop() {
   time = millis();
   getVolts();
-  //  doBuck(); // adjust inverter voltage
+  doBuck(); // adjust inverter voltage
   doSafety();
   //  getAmps();  // only if we have a current sensor
   //  calcWatts(); // also adds in knob value for extra wattage, unless commented out
