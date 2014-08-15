@@ -287,27 +287,27 @@ void doLeds(){
 
   for(i = 0; i < NUM_LEDS; i++) {
     if(ledState[i]==STATE_ON){
-      //      digitalWrite(ledPins[i], HIGH);
-      if (analogState[i] != brightness) analogWrite(ledPins[i], brightness); // don't analogWrite unnecessarily!
-      analogState[i] = brightness;
+      digitalWrite(ledPins[i], HIGH);
+      // if (analogState[i] != brightness) analogWrite(ledPins[i], brightness); // don't analogWrite unnecessarily!
+      // analogState[i] = brightness;
     }
     else if (ledState[i]==STATE_OFF){
       digitalWrite(ledPins[i], LOW);
       analogState[i] = 0;
     }
     else if (ledState[i]==STATE_BLINK && blinkState==1){
-      //      digitalWrite(ledPins[i], HIGH);
-      if (analogState[i] != brightness) analogWrite(ledPins[i], brightness); // don't analogWrite unnecessarily!
-      analogState[i] = brightness;
+      digitalWrite(ledPins[i], HIGH);
+      // if (analogState[i] != brightness) analogWrite(ledPins[i], brightness); // don't analogWrite unnecessarily!
+      // analogState[i] = brightness;
     }
     else if (ledState[i]==STATE_BLINK && blinkState==0){
       digitalWrite(ledPins[i], LOW);
       analogState[i] = 0;
     }
     else if (ledState[i]==STATE_BLINKFAST && fastBlinkState==1){
-      //      digitalWrite(ledPins[i], HIGH);
-      if (analogState[i] != brightness) analogWrite(ledPins[i], brightness); // don't analogWrite unnecessarily!
-      analogState[i] = brightness;
+      digitalWrite(ledPins[i], HIGH);
+      // if (analogState[i] != brightness) analogWrite(ledPins[i], brightness); // don't analogWrite unnecessarily!
+      // analogState[i] = brightness;
     }
     else if (ledState[i]==STATE_BLINKFAST && fastBlinkState==0){
       digitalWrite(ledPins[i], LOW);
