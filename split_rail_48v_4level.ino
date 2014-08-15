@@ -24,9 +24,13 @@
  * 2.3 - JS => create branch decida for split-rail system with automatic rail selection for pedallers (see decida.xcf)
  * 2.4 - JS => rip out a bunch of stuff that we haven't used in a long time
 */
-char versionStr[] = "Split-Rail 48 volt 7-line pedalometer Pedal Power Utility Box ver. 2.4 branch buck";
+char versionStr[] = "Split-Rail DIVIDA 48 volt 7-line pedalometer Pedal Power Utility Box ver. 2.4 branch buck";
 
 // PINS
+#define DIVIDAPIN 13 // transistor pulls virtual ground toward minusrail
+#define DIVIDA_VOLTPIN A2 // IC3 pinhole used for a voltage divider sensor
+#define DIVIDA_HYSTERESIS 1.0 // how many volts above halfway before divida activated
+
 #define RELAYPIN 2 // relay cutoff output pin // NEVER USE 13 FOR A RELAY
 #define VOLTPIN A0 // Voltage Sensor Pin
 #define AMPSPIN A3 // Current Sensor Pin
@@ -91,6 +95,10 @@ int voltsBuckAdc = 0; // for measuring A1 voltage
 float voltsBuckAvg = 0; // for measuring A1 voltage
 float voltsBuck = 0; // averaged A1 voltage
 
+int voltsDividaAdc = 0; // for measuring Divida voltage
+float voltsDividaAvg = 0; // for measuring Divida voltage
+float voltsDivida = 0; // averaged Divida voltage
+
 //Current related variables
 int ampsAdc = 0;
 float ampsAdcAvg = 0;
@@ -126,11 +134,13 @@ void setup() {
   // setPwmFrequency(3,1); // this sets the frequency of PWM on pins 3 and 11 to 31,250 Hz
   setPwmFrequency(9,1); // this sets the frequency of PWM on pins 9 and 10 to 31,250 Hz
   pinMode(9,OUTPUT); // this pin will control the transistors of the huge BUCK converter
+  pinMode(DIVIDAPIN,OUTPUT); // this transistor pulls virtual ground down toward minusrail
 }
 
 void loop() {
   time = millis();
   getVolts();
+  doDivida(); // perform megadivida function
   doBuck(); // adjust inverter voltage
   doSafety();
   //  getAmps();  // only if we have a current sensor
@@ -208,6 +218,11 @@ void doBuck() {
   if (volts < BUCK_CUTOUT) { // system voltage is too low for transistors
     digitalWrite(9,LOW); // turn off transistors
   }
+}
+
+void doDivida() { // perform megadivida function
+  if (voltsDivida > (volts / 2 + DIVIDA_HYSTERESIS)) digitalWrite(DIVIDAPIN,HIGH); // pull virtual ground lower
+  if (voltsDivida < (volts / 2)) digitalWrite(DIVIDAPIN,LOW); // stop pulling it down
 }
 
 void doSafety() {
@@ -332,6 +347,10 @@ void getVolts(){
   voltsBuckAvg = average(voltsBuckAdc, voltsBuckAvg);
   voltsBuck = adc2volts(voltsBuckAvg);
 
+  voltsDividaAdc = analogRead(DIVIDA_VOLTPIN);
+  voltsDividaAvg = average(voltsDividaAdc, voltsDividaAvg);
+  voltsDivida = adc2volts(voltsDividaAvg);
+
   //  brightness = 255 - BRIGHTNESSBASE * (1.0 - (brightnessKnobFactor * (1023 - analogRead(knobpin))));  // the knob affects brightnes
 
   brightness = BRIGHTNESSBASE;  // full brightness unless dimming is required
@@ -388,9 +407,10 @@ void printDisplay(){
   //  Serial.print(watts);
   //  Serial.print(", voltsBuck: ");
   //  Serial.print(voltsBuck);
-  //  Serial.print(", inverter: ");
-  //  Serial.print(volts-voltsBuck);
-
+  Serial.print(", inverter: ");
+  Serial.print(volts-voltsBuck);
+  Serial.print(", voltsDivida: ");
+  Serial.print(voltsDivida);
   //  Serial.print(", Levels ");
   //  for(i = 0; i < NUM_LEDS; i++) {
   //    Serial.print(i);
