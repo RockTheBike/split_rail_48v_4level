@@ -27,6 +27,9 @@
 char versionStr[] = "Split-Rail DIVIDA 48 volt 7-line pedalometer Pedal Power Utility Box ver. 2.4 branch buck";
 
 // PINS
+#define THERMALPIN A5 // an NTC thermistor connects from here to ground, with a pullup resistor
+#define THERMAL_LIMIT 500 // BELOW this value is considered too hot
+
 #define DIVIDAPIN 13 // transistor pulls virtual ground toward minusrail
 #define DIVIDA_VOLTPIN A2 // IC3 pinhole used for a voltage divider sensor
 #define DIVIDA_HYSTERESIS 1.0 // how many volts above halfway before divida activated
@@ -86,6 +89,9 @@ int blinkState = 0;
 int fastBlinkState = 0;
 
 #define VOLTCOEFF 13.179  // larger number interprets as lower voltage
+
+int thermalAdc = 0;
+float thermalAdcAvg = 0;
 
 int voltsAdc = 0;
 float voltsAdcAvg = 0;
@@ -175,49 +181,53 @@ float buckPWM = 0; // PWM value of pin 9
 int lastBuckPWM = 0; // make sure we don't call analogWrite if already set right
 
 void doBuck() {
-  if (volts > BUCK_CUTIN) { // voltage is high enough to turn on transistors
-    if (volts <= BUCK_VOLTAGE) { // system voltage is lower than inverter target voltage
-      digitalWrite(9,HIGH); // turn transistors fully on, give full voltage to inverter
-      buckPWM = 0;
-    }
+  thermalAdc = analogRead(THERMALPIN); // NTC thermistor connected from ground to ADC pin, with pullup resistor
+  thermalAdcAvg = average(thermalAdc, thermalAdcAvg);
+  if (thermalAdcAvg > THERMAL_LIMIT) {  // if heatsink/thermistor is not too hot (adc BELOW limit = too hot)
+    if (volts > BUCK_CUTIN) { // voltage is high enough to turn on transistors
+      if (volts <= BUCK_VOLTAGE) { // system voltage is lower than inverter target voltage
+        digitalWrite(9,HIGH); // turn transistors fully on, give full voltage to inverter
+        buckPWM = 0;
+      }
 
-    if ((volts > BUCK_VOLTAGE+BUCK_HYSTERESIS) && (buckPWM == 0)) { // begin PWM action
-      buckPWM = 255.0 * (1.0 - ((volts - BUCK_VOLTAGE) / BUCK_VOLTAGE)); // best guess for initial PWM value
-      //      Serial.print("buckval=");
-      //      Serial.println(buckPWM);
-      analogWrite(9,(int) buckPWM); // actually set the thing in motion
-    }
+      if ((volts > BUCK_VOLTAGE+BUCK_HYSTERESIS) && (buckPWM == 0)) { // begin PWM action
+        buckPWM = 255.0 * (1.0 - ((volts - BUCK_VOLTAGE) / BUCK_VOLTAGE)); // best guess for initial PWM value
+        //      Serial.print("buckval=");
+        //      Serial.println(buckPWM);
+        analogWrite(9,(int) buckPWM); // actually set the thing in motion
+      }
 
-    if ((volts > BUCK_VOLTAGE) && (buckPWM != 0)) { // adjust PWM value based on results
-      if (volts - voltsBuck > BUCK_VOLTAGE + BUCK_HYSTERESIS) { // inverter voltage is too high
-        buckPWM -= BUCK_PWM_DOWNJUMP; // reduce PWM value to reduce inverter voltage
-        if (buckPWM <= 0) {
-          //          Serial.print("0");
-          buckPWM = 1; // minimum PWM value
+      if ((volts > BUCK_VOLTAGE) && (buckPWM != 0)) { // adjust PWM value based on results
+        if (volts - voltsBuck > BUCK_VOLTAGE + BUCK_HYSTERESIS) { // inverter voltage is too high
+          buckPWM -= BUCK_PWM_DOWNJUMP; // reduce PWM value to reduce inverter voltage
+          if (buckPWM <= 0) {
+            //          Serial.print("0");
+            buckPWM = 1; // minimum PWM value
+          }
+          if (lastBuckPWM != (int) buckPWM) { // only if the PWM value has changed should we...
+            lastBuckPWM = (int) buckPWM;
+            //          Serial.print("-");
+            analogWrite(9,lastBuckPWM); // actually set the PWM value
+          }
         }
-        if (lastBuckPWM != (int) buckPWM) { // only if the PWM value has changed should we...
-          lastBuckPWM = (int) buckPWM;
-          //          Serial.print("-");
-          analogWrite(9,lastBuckPWM); // actually set the PWM value
+        if (volts - voltsBuck < BUCK_VOLTAGE) { // inverter voltage is too low
+          buckPWM += BUCK_PWM_UPJUMP; // increase PWM value to raise inverter voltage
+          if (buckPWM > 255.0) {
+            buckPWM = 255.0;
+            //          Serial.print("X");
+          }
+          if (lastBuckPWM != (int) buckPWM) { // only if the PWM value has changed should we...
+            lastBuckPWM = (int) buckPWM;
+            //          Serial.print("+");
+            analogWrite(9,lastBuckPWM); // actually set the PWM value
+          }
         }
       }
-      if (volts - voltsBuck < BUCK_VOLTAGE) { // inverter voltage is too low
-        buckPWM += BUCK_PWM_UPJUMP; // increase PWM value to raise inverter voltage
-        if (buckPWM > 255.0) {
-          buckPWM = 255.0;
-          //          Serial.print("X");
-        }
-        if (lastBuckPWM != (int) buckPWM) { // only if the PWM value has changed should we...
-          lastBuckPWM = (int) buckPWM;
-          //          Serial.print("+");
-          analogWrite(9,lastBuckPWM); // actually set the PWM value
-        }
-      }
     }
-  } 
-  if (volts < BUCK_CUTOUT) { // system voltage is too low for transistors
-    digitalWrite(9,LOW); // turn off transistors
-  }
+    if (volts < BUCK_CUTOUT) { // system voltage is too low for transistors
+      digitalWrite(9,LOW); // turn off transistors
+    }
+  } else digitalWrite(9,LOW); // heatsink/thermistor is too hot (adc too low)
 }
 
 void doDivida() { // perform megadivida function
