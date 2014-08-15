@@ -24,19 +24,19 @@
  * 2.3 - JS => create branch decida for split-rail system with automatic rail selection for pedallers (see decida.xcf)
  * 2.4 - JS => rip out a bunch of stuff that we haven't used in a long time
 */
-char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility Box ver. 2.4 branch buck";
+char versionStr[] = "Split-Rail 48 volt 7-line pedalometer Pedal Power Utility Box ver. 2.4 branch buck";
 
 // PINS
 #define RELAYPIN 2 // relay cutoff output pin // NEVER USE 13 FOR A RELAY
 #define VOLTPIN A0 // Voltage Sensor Pin
 #define AMPSPIN A3 // Current Sensor Pin
-#define NUM_LEDS 4 // Number of LED outputs.
+#define NUM_LEDS 7 // Number of LED outputs.
 const int ledPins[NUM_LEDS] = {
-  3, 5, 6, 11};
+  3, 4, 5, 6, 7, 8, 11};
 
 // levels at which each LED turns on (not including special states)
 const float ledLevels[NUM_LEDS+1] = {
-  24.0, 32.0, 40.0, 48.0, 50.0};
+  24.0, 28.0, 32.0, 36.0, 40.0, 44.0, 48.0, 50.0}; // 48.6 or 54 volts max?
 
 #define BRIGHTNESSVOLTAGE 24.0  // voltage at which LED brightness starts to fold back
 #define BRIGHTNESSBASE 255  // maximum brightness value (255 is max value here)
@@ -267,10 +267,10 @@ void doLeds(){
     ledState[0]=STATE_BLINK;
   }
 
-  // turn off first x levels if voltage is above 3rd level
-  if(volts > ledLevels[1]){
+  // turn off first 2 levels if voltage is above 3rd level
+  if(volts > ledLevels[2]){
     ledState[0] = STATE_OFF;
-//    ledState[1] = STATE_OFF;
+    ledState[1] = STATE_OFF;
   }
 
   if (dangerState){
