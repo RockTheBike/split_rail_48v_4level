@@ -137,7 +137,6 @@ unsigned long timefailurestarted = 0;
 unsigned long timeArbduinoTurnedOn = 0;
 unsigned long clearlyLosingTime = 0; // time when we last were NOT clearly losing
 unsigned long serialTime = 0; // time when last serial data was seen
-unsigned long drainedTime = 0; // time when volts was last OVER 13.5v
 #define EMPTYTIME 1000 // how long caps must be below 13.5v to be considered empty
 #define SERIALTIMEOUT 500 // if serial data is older than this, ignore it
 #define SERIALINTERVAL 300 // how much time between sending a serial packet
@@ -502,24 +501,6 @@ void doSafety() {
     dangerState = STATE_ON;
   } else {
     dangerState = STATE_OFF;
-  }
-
-  if (situation == FAILING && relayState!=STATE_ON && (time - timefailurestarted) > 10000 ) {
-    // Open the Relay so volts can drop;
-    digitalWrite(RELAYPIN, HIGH);
-    relayState = STATE_ON;
-    if (DEBUG) Serial.println("FAILING 10seconds: RELAY OPEN");
-  }
-  if (volts > 13.5) {
-    drainedTime = time;
-  }
-  if ((time - drainedTime > EMPTYTIME) && situation == FAILING ){
-    situation = IDLING; //FAILING worked! we brought the voltage back to under 14.
-    delay(2000);
-    timeSinceVoltageBeganFalling = 0;
-    digitalWrite(RELAYPIN, LOW);
-    relayState = STATE_OFF;
-    if (DEBUG) Serial.println("EMPTYTIME, got to IDLING 1: RELAY CLOSED");
   }
 }
 
