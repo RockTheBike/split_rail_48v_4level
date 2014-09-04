@@ -38,13 +38,13 @@ char versionStr[] = "Single-Rail 12 volt sLEDgehammer for two teams at the Solar
 #define NUM_TEAMS 2
 #define NUM_COLUMNS 5
 const int TEAM_COLUMN_PIN[NUM_TEAMS][NUM_COLUMNS] = {
-  { 3, 4, 5, 6, 7 },
-  { 8, 9, 10, 11, 12 } };
+  { 2, 3, 4, 5, 6 },
+  { 7, 8, 9, 10, 11 } };
 #define VOLTPIN A0 // Voltage Sensor Pin
 #define AMPSPIN A3 // Current Sensor Pin
 #define NUM_LEDS 11 // Number of LED outputs.
 const int ledPins[NUM_LEDS] = {
-  3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 };
+  2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13 };
 
 // levels at which each LED turns on (not including special states)
 const float ledLevels[NUM_LEDS+1] = {
@@ -85,11 +85,11 @@ int analogState[NUM_LEDS] = {0}; // stores the last analogWrite() value for each
 int ledState[NUM_LEDS] = {
   STATE_OFF};
 
-#define MAX_VOLTS 25.5  //
-#define RECOVERY_VOLTS 24.0
+#define MAX_VOLTS 13.5
+#define RECOVERY_VOLTS 13.0
 int relayState = STATE_OFF;
 
-#define DANGER_VOLTS 26.0
+#define DANGER_VOLTS 13.7
 int dangerState = STATE_OFF;
 
 int blinkState = 0;
