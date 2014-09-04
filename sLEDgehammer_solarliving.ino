@@ -175,6 +175,56 @@ void loop() {
   realVolts = volts; // save realVolts for printDisplay function
   fakeVoltage(); // adjust 'volts' according to knob
 
+  if (time - vRTime > 1000)  // we do this once per second exactly
+    updateVoltRecord();
+
+  playGame();
+
+  //  getAmps();  // only if we have a current sensor
+  //  calcWatts(); // also adds in knob value for extra wattage, unless commented out
+
+  //  if it's been at least 1/4 second since the last time we measured Watt Hours...
+  doBlink();  // blink the LEDs
+  doLeds();
+
+  if(time - timeDisplay > DISPLAY_INTERVAL){
+    printDisplay();
+    timeDisplay = time;
+  }
+
+}
+
+#define FAKEDIVISOR 2900 // 2026 allows doubling of voltage, 3039 allows 50% increase, etc..
+float fakeVoltage() {
+  doKnob(); // read knob value into knobAdc
+  float multiplier = (float)FAKEDIVISOR / (float)(FAKEDIVISOR - knobAdc);
+  volts = volts * multiplier; // turning knob up returns higher voltage
+
+  // JAKE -- research how to do 'return'. It wasn't working so I changed to the volts = ... above.
+
+} // if knob is all the way down, voltage is returned unchanged
+
+void updateVoltRecord() {
+  if(situation == JUSTBEGAN){
+      if (time-timeArbduinoTurnedOn > 2200) situation = IDLING;
+  }
+  if ( voltish < volts2SecondsAgo + 0.1) { // stuck or slow drift
+    timeSinceVoltageBeganFalling++;
+  } else {
+    timeSinceVoltageBeganFalling = 0;
+  }
+  vRTime += 1000; // add a second to the timer index
+  voltRecord[vRIndex] = voltish; // store the value. JAKE doing vRIndex++ didn't work. needed to be on two separate lines.
+  vRIndex++;
+  if (vRIndex >= VRSIZE) vRIndex = 0; // wrap the counter if necessary
+}
+
+void  resetVoltRecord() {
+  for(i = 0; i < VRSIZE; i++) {
+    voltRecord[i] = volts;
+  }
+}
+
 /*
 Situation is either:
 IDLING
@@ -230,8 +280,7 @@ FAILING is for voltage (actual, not adjusted) to fall below 13.5 .
 
 */
 
-  if (time - vRTime > 1000)  // we do this once per second exactly
-    updateVoltRecord();
+void playGame() {
 
   // Am I idling?
 
@@ -287,50 +336,8 @@ FAILING is for voltage (actual, not adjusted) to fall below 13.5 .
     if (DEBUG) Serial.print("got to VICTORY 1");
   }
 
-  //  getAmps();  // only if we have a current sensor
-  //  calcWatts(); // also adds in knob value for extra wattage, unless commented out
-
-  //  if it's been at least 1/4 second since the last time we measured Watt Hours...
-  doBlink();  // blink the LEDs
-  doLeds();
-
-  if(time - timeDisplay > DISPLAY_INTERVAL){
-    printDisplay();
-    timeDisplay = time;
-  }
-
 }
 
-#define FAKEDIVISOR 2900 // 2026 allows doubling of voltage, 3039 allows 50% increase, etc..
-float fakeVoltage() {
-  doKnob(); // read knob value into knobAdc
-  float multiplier = (float)FAKEDIVISOR / (float)(FAKEDIVISOR - knobAdc);
-  volts = volts * multiplier; // turning knob up returns higher voltage
-
-  // JAKE -- research how to do 'return'. It wasn't working so I changed to the volts = ... above.
-
-} // if knob is all the way down, voltage is returned unchanged
-
-void updateVoltRecord() {
-  if(situation == JUSTBEGAN){
-      if (time-timeArbduinoTurnedOn > 2200) situation = IDLING;
-  }
-  if ( voltish < volts2SecondsAgo + 0.1) { // stuck or slow drift
-    timeSinceVoltageBeganFalling++;
-  } else {
-    timeSinceVoltageBeganFalling = 0;
-  }
-  vRTime += 1000; // add a second to the timer index
-  voltRecord[vRIndex] = voltish; // store the value. JAKE doing vRIndex++ didn't work. needed to be on two separate lines.
-  vRIndex++;
-  if (vRIndex >= VRSIZE) vRIndex = 0; // wrap the counter if necessary
-}
-
-void  resetVoltRecord() {
-  for(i = 0; i < VRSIZE; i++) {
-    voltRecord[i] = volts;
-  }
-}
 
 void doBlink(){
 
