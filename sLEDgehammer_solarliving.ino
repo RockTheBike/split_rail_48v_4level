@@ -404,7 +404,8 @@ void playGameHealthy() {
   for( int team=0; team<NUM_TEAMS; team++ )
     for( int col=0; col<NUM_COLUMNS; col++ )
       ledState[TEAM_COLUMN_PIN[team][col]] =
-        effort_by_team[team] > threshold_for_column_led[col] ? STATE_ON : STATE_OFF;
+        // TODO:  use something like effort_by_team[team] instead of voltage
+        voltish > threshold_for_column_led[col] ? STATE_ON : STATE_OFF;
   ledState[HALOGENPIN] = voltish > threshold_for_halogens ? STATE_ON : STATE_OFF;
 }
 
