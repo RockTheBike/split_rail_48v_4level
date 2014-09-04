@@ -323,7 +323,7 @@ void playGame() {
     }
   }
 
-  if (presentLevel < 9) { // voltish < ledLevels[NUM_LEDS-1]){
+  if (presentLevel < 9) { // voltish < ledLevels[NUM_LEDS-1]
       topLevelTime = time; // reset timer unless you're at top level
   }
 
@@ -336,49 +336,7 @@ void playGame() {
     if (DEBUG) Serial.print("got to VICTORY 1");
   }
 
-}
 
-
-void doBlink(){
-
-  if (((time - timeBlink) > BLINK_PERIOD) && blinkState == 1){
-    blinkState = 0;
-    timeBlink = time;
-  }
-  else if (((time - timeBlink) > BLINK_PERIOD) && blinkState == 0){
-    blinkState = 1;
-    timeBlink = time;
-  }
-
-  if (((time - timeFastBlink) > FAST_BLINK_PERIOD) && fastBlinkState == 1){
-    fastBlinkState = 0;
-    timeFastBlink = time;
-  }
-  else if (((time - timeFastBlink) > FAST_BLINK_PERIOD) && fastBlinkState == 0){
-    fastBlinkState = 1;
-    timeFastBlink = time;
-  }
-
-}
-
-/*
-1. advance from voltage level 1 to 10, each time turning on more stripes of
-light. Here are the voltage targets: 14,16,18, 19, 20, 21, 22, 22.5, 23.25, 24
-2. If the person gets to level 10 and holds it for more than 3 seconds, do
-the reward sequence.
-3. Reward: bottom to top with 0.1S intervals 3 times, then ALL ON to get rid
-of the power and bring it back down so it's ready for the next pedaler.
-4. We will use a difficulty knob. The Voltish concept worked well in the
-past. All the way left means a 30% reduction in voltage targets. I need to
-know how to wire it.
-5. We will possibly need to implement some type of averaging or hysteresis
-so it someone is out of the saddle pedaling, the lights don't pulse to their
-pedaling.
-* if the voltage doesn't increase for 30 seconds, turn on the halogens to
-  drain the patient to 12v
-*/
-
-void doLeds(){
 
   presentLevel = 0; // we will now load presentLevel with highest level achieved
   for(i = 0; i < NUM_LEDS; i++) {
@@ -428,6 +386,50 @@ void doLeds(){
       ledState[i]=STATE_OFF;
     }
   }
+
+}
+
+
+void doBlink(){
+
+  if (((time - timeBlink) > BLINK_PERIOD) && blinkState == 1){
+    blinkState = 0;
+    timeBlink = time;
+  }
+  else if (((time - timeBlink) > BLINK_PERIOD) && blinkState == 0){
+    blinkState = 1;
+    timeBlink = time;
+  }
+
+  if (((time - timeFastBlink) > FAST_BLINK_PERIOD) && fastBlinkState == 1){
+    fastBlinkState = 0;
+    timeFastBlink = time;
+  }
+  else if (((time - timeFastBlink) > FAST_BLINK_PERIOD) && fastBlinkState == 0){
+    fastBlinkState = 1;
+    timeFastBlink = time;
+  }
+
+}
+
+/*
+1. advance from voltage level 1 to 10, each time turning on more stripes of
+light. Here are the voltage targets: 14,16,18, 19, 20, 21, 22, 22.5, 23.25, 24
+2. If the person gets to level 10 and holds it for more than 3 seconds, do
+the reward sequence.
+3. Reward: bottom to top with 0.1S intervals 3 times, then ALL ON to get rid
+of the power and bring it back down so it's ready for the next pedaler.
+4. We will use a difficulty knob. The Voltish concept worked well in the
+past. All the way left means a 30% reduction in voltage targets. I need to
+know how to wire it.
+5. We will possibly need to implement some type of averaging or hysteresis
+so it someone is out of the saddle pedaling, the lights don't pulse to their
+pedaling.
+* if the voltage doesn't increase for 30 seconds, turn on the halogens to
+  drain the patient to 12v
+*/
+
+void doLeds(){
 
   // loop through each led and turn on/off or adjust PWM
 
