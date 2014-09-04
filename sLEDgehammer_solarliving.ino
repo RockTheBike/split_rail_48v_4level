@@ -109,8 +109,6 @@ float volts,realVolts = 0;
 #define JUSTBEGAN 5
 
 
-int situation = IDLING; // what is the system doing?
-
 #define WINTIME 3000 // how many milliseconds you need to be at top level before you win
 #define LOSESECONDS 30 // how many seconds ago your voltage is compared to see if you gave up
 #define VRSIZE 40 // must be greater than LOSESECONDS but not big enough to use up too much RAM
@@ -170,7 +168,6 @@ void setup() {
     pinMode(ledPins[i],OUTPUT);
       digitalWrite(ledPins[i],LOW);
   }
-  situation = JUSTBEGAN;
   timeDisplay = millis();
   timeArbduinoTurnedOn = timeDisplay;
   vRTime = timeDisplay; // initialize vRTime since it's a once-per-second thing
@@ -186,7 +183,13 @@ void loop() {
   if (time - vRTime > 1000)  // we do this once per second exactly
     updateVoltRecord();
 
-  playGame();
+  if (dangerState){
+    for(i = 0; i < NUM_LEDS; i++) {
+      ledState[i] = STATE_ON; // try to keep the voltage down
+    }
+  } else {
+    playGame();
+  }
 
   //  getAmps();  // only if we have a current sensor
   //  calcWatts(); // also adds in knob value for extra wattage, unless commented out
@@ -213,9 +216,6 @@ float fakeVoltage() {
 } // if knob is all the way down, voltage is returned unchanged
 
 void updateVoltRecord() {
-  if(situation == JUSTBEGAN){
-      if (time-timeArbduinoTurnedOn > 2200) situation = IDLING;
-  }
   if ( voltish < volts2SecondsAgo + 0.1) { // stuck or slow drift
     timeSinceVoltageBeganFalling++;
   } else {
@@ -233,173 +233,8 @@ void  resetVoltRecord() {
   }
 }
 
-/*
-Situation is either:
-IDLING
-PLAYING
-FAILING
-(LEVEL 10)
-VICTORY DANCE
-DANCE OVER
-HARD RESET
-
-IDLING only goes to PLAYING if volts increases by a real amount indicating pedaling
-
-PLAYING goes to FAILING if voltage keeps falling for at least 30 seconds
-
-PLAYING goes to VICTORY DANCE if volts >= win voltage with all lights on for 3 seconds
-
-FAILING always goes to IDLING before PLAYING. Lift relay after 15 seconds!
-
-VICTORY goes to FAILING after light sequence
-
-You know you're IDLING if volts < 14 and haven't risen and not PLAYING
-
-You know you're PLAYING if volts have risen significantly.
-
-You know you're FAILING if someone set it to FAILING
-
-Ways to improve:
-When someone gives up and the knob is easy, the volts falls slowly. then the game never resets. we need 'time since pedaling.'
-
-2014-4-28 emailed pseudocode
-
-Both sLEDgehammers need their own difficulty knob to cover the possibility of doing two events in two places on the same day.
-
-The two boxes also need to be able to 'talk' to each other through a serial cable that I am hoping you can make.
-
-IF the boxes are connected to each other through this cable, follow this pseudocode:
-
-0. Give the boxes names like Box1 and Box2
-
-1. Create a new state called "CLEARLYWINNING". Clearly winning means that you are at least 2 stages ahead of your opponent for more than 2 seconds. So if you are on
-level 8 and they are on level 6 or below for more than 2 seconds, you are CLEARLYWINNING.
-
-If Box1 is CLEARLYWINNING, adjust the 'voltish' of Box2, making it easier for them to catch up. This makes the game closer. Start with a 10% adjustment. Reset the
-CLEARLYWINNING clock. If CLEARLYWINNING again, do another 10% adjustment.
-
-2. If Box1 = VICTORY, then Box1 enters its victory dance which you will see in the code. Box2 should do a 'failure droop' where it fades out. Note the function
-turnThemOffOneAtATime(). This may be useful if for nothing other than to see the timing that I like ( delay of 200ms between levels).  NOTE that the top level STAYS
-ON. This is to prevent people from slipping off the pedals when the Halogens turn off and they are still pedaling hard.
-
-3. If Box2 loses a competition because Box1 gets to victory first, then make Box2's state = FAILING. As you'll see in the code, the only way you can get out of
-FAILING is for voltage (actual, not adjusted) to fall below 13.5 .
-
-
-*/
 
 void playGame() {
-
-  playGameHealthy();
-
-  // Am I idling?
-
-  if (volts < 12 && situation != PLAYING && situation != JUSTBEGAN) {
-    situation = IDLING;
-  }
-
-  volts2SecondsAgo =  voltRecord[(vRIndex + VRSIZE - 2) % VRSIZE]; // voltage LOSESECONDS ago
-
-  if (situation==IDLING){
-
-    if (voltish - volts2SecondsAgo > 0.4){ // need to get past startup sequences
-
-      situation = PLAYING;
-      timeSinceVoltageBeganFalling = 0;
-      voltsBefore = voltish;
-      resetVoltRecord();
-      if (DEBUG) Serial.println("got to PLAYING 1");// pedaling has begun in earnest
-
-    }
-
-  }
-
-  if (timeSinceVoltageBeganFalling > 15 && volts>13.5 && situation != FAILING){
-    Serial.println("Got to Failing. Voltage has been falling for 15 seconds. ");
-    situation=FAILING;
-  }
-
-  if (situation != VICTORY && situation == PLAYING) { // if we're not in VICTORY mode...
-    voltsBefore =  voltRecord[(vRIndex + VRSIZE - LOSESECONDS) % VRSIZE]; // voltage LOSESECONDS ago
-    if (timeSinceVoltageBeganFalling > 15) {
-      if (DEBUG) Serial.println("Got to Failing. Voltage has been falling for 15 seconds. ");
-      situation=FAILING;
-    } else if ((voltsBefore - voltish) > 3) { // if voltage has fallen but they haven't given up
-      if (DEBUG) Serial.print("voltsBefore: ");
-      if (DEBUG) Serial.println(voltsBefore);
-      situation = FAILING; // forget it, you lose
-      if (DEBUG) Serial.println("got to FAILING 2");
-      timefailurestarted = time;
-    }
-  }
-
-  if (presentLevel < 9) { // voltish < ledLevels[NUM_LEDS-1]
-      topLevelTime = time; // reset timer unless you're at top level
-  }
-
-  if ((situation == PLAYING) && (time - topLevelTime > WINTIME) && (presentLevel == 9)) { // it's been WINTIME milliseconds of solid top-level action!
-
-    if (situation != VICTORY) {
-      victoryTime = time; // record the start time of victory
-    }
-    situation = VICTORY;
-    if (DEBUG) Serial.print("got to VICTORY 1");
-  }
-
-
-
-  presentLevel = 0; // we will now load presentLevel with highest level achieved
-  for(i = 0; i < NUM_LEDS; i++) {
-    if(voltish >= ledLevels[i]){
-      ledState[i]=STATE_ON;
-      presentLevel = i; // presentLevel should equal the highest LED level
-    }
-    else
-      ledState[i]=STATE_OFF;
-  }
-
-  if (situation == VICTORY) presentLevel = 10; // tell the other box we won!
-  if (situation == FAILING) presentLevel = 0; // tell the other box the sad truth
-
-  if (dangerState){
-    for(i = 0; i < NUM_LEDS; i++) {
-      ledState[i] = STATE_ON; // try to keep the voltage down
-    }
-  }
-
-  if (situation == VICTORY) { // assuming victory is not over
-    if (time - victoryTime <= 3000){
-      for (i = 0; i < NUM_LEDS - 1; i++) {
-        ledState[i]=STATE_OFF; // turn them all off but the top one, which helps keep it from suddenly feeling easy.
-      }
-      ledState[((time - victoryTime) % 1000) / 100]=STATE_ON; // turn on one at a time, bottom to top, 0.1 seconds each
-    } else { // 1st victory sequence is over
-      situation=FAILING;
-      if (DEBUG) Serial.println("I switched to FAILING 1");
-      timefailurestarted = time;
-    }
-  }
-
-  if (situation == FAILING){
-      for (i = 0; i < NUM_LEDS; i++) {
-        if (i > 6) {  // WHICH LEVELS ARE ON DURING FAILING / DRAINING
-          ledState[i]=STATE_ON;
-        } else {
-          ledState[i]=STATE_OFF;
-        }
-      }
-  }
-
-  if (situation == IDLING){
-    for (i = 0; i < NUM_LEDS; i++) {
-      // WHICH LEVELS ARE ON DURING FAILING / DRAINING
-      ledState[i]=STATE_OFF;
-    }
-  }
-
-}
-
-void playGameHealthy() {
   // we control the halogens only with total voltage
   static const float threshold_for_halogens = 13.0;
   // we control the column LEDs with some combo of voltage and accumulated team effort
@@ -489,13 +324,13 @@ void doLeds(){
 } // END doLeds()
 
 void doSafety() {
-  if (volts > MAX_VOLTS){
+  if (relayState == STATE_OFF && volts > MAX_VOLTS) {
     digitalWrite(RELAYPIN, HIGH);
     relayState = STATE_ON;
     if (DEBUG) Serial.println("RELAY OPEN");
   }
 
-  if (relayState == STATE_ON && situation != FAILING && volts < RECOVERY_VOLTS){
+  if (relayState == STATE_ON && volts < RECOVERY_VOLTS){
     digitalWrite(RELAYPIN, LOW);
     relayState = STATE_OFF;
     if (DEBUG) Serial.println("RELAY CLOSED");
@@ -577,8 +412,8 @@ void printDisplay(){
   if (DEBUG && voltishFactor > 1.0) Serial.print(voltish);
   if (DEBUG && voltishFactor > 1.0) Serial.print("voltish ");
   // if (DEBUG) Serial.print(analogRead(VOLTPIN));
-  if (DEBUG) Serial.print("   Situation: ");
-  if (DEBUG) Serial.print(situation);
+  if (DEBUG) Serial.print("   relayState: ");
+  if (DEBUG) Serial.print(relayState);
   if (DEBUG) Serial.print("  time - topLevelTime: ");
   if (DEBUG) Serial.print(time - topLevelTime);
   if (DEBUG) Serial.print("  Voltage has been flat or falling for ");
