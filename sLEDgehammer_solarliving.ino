@@ -186,7 +186,13 @@ void loop() {
   if (time - vRTime > 1000)  // we do this once per second exactly
     updateVoltRecord();
 
-  playGame();
+  if (dangerState){
+    for(i = 0; i < NUM_LEDS; i++) {
+      ledState[i] = STATE_ON; // try to keep the voltage down
+    }
+  } else {
+    playGame();
+  }
 
   //  getAmps();  // only if we have a current sensor
   //  calcWatts(); // also adds in knob value for extra wattage, unless commented out
@@ -288,118 +294,8 @@ FAILING is for voltage (actual, not adjusted) to fall below 13.5 .
 
 */
 
+
 void playGame() {
-
-  playGameHealthy();
-
-  // Am I idling?
-
-  if (volts < 12 && situation != PLAYING && situation != JUSTBEGAN) {
-    situation = IDLING;
-  }
-
-  volts2SecondsAgo =  voltRecord[(vRIndex + VRSIZE - 2) % VRSIZE]; // voltage LOSESECONDS ago
-
-  if (situation==IDLING){
-
-    if (voltish - volts2SecondsAgo > 0.4){ // need to get past startup sequences
-
-      situation = PLAYING;
-      timeSinceVoltageBeganFalling = 0;
-      voltsBefore = voltish;
-      resetVoltRecord();
-      if (DEBUG) Serial.println("got to PLAYING 1");// pedaling has begun in earnest
-
-    }
-
-  }
-
-  if (timeSinceVoltageBeganFalling > 15 && volts>13.5 && situation != FAILING){
-    Serial.println("Got to Failing. Voltage has been falling for 15 seconds. ");
-    situation=FAILING;
-  }
-
-  if (situation != VICTORY && situation == PLAYING) { // if we're not in VICTORY mode...
-    voltsBefore =  voltRecord[(vRIndex + VRSIZE - LOSESECONDS) % VRSIZE]; // voltage LOSESECONDS ago
-    if (timeSinceVoltageBeganFalling > 15) {
-      if (DEBUG) Serial.println("Got to Failing. Voltage has been falling for 15 seconds. ");
-      situation=FAILING;
-    } else if ((voltsBefore - voltish) > 3) { // if voltage has fallen but they haven't given up
-      if (DEBUG) Serial.print("voltsBefore: ");
-      if (DEBUG) Serial.println(voltsBefore);
-      situation = FAILING; // forget it, you lose
-      if (DEBUG) Serial.println("got to FAILING 2");
-      timefailurestarted = time;
-    }
-  }
-
-  if (presentLevel < 9) { // voltish < ledLevels[NUM_LEDS-1]
-      topLevelTime = time; // reset timer unless you're at top level
-  }
-
-  if ((situation == PLAYING) && (time - topLevelTime > WINTIME) && (presentLevel == 9)) { // it's been WINTIME milliseconds of solid top-level action!
-
-    if (situation != VICTORY) {
-      victoryTime = time; // record the start time of victory
-    }
-    situation = VICTORY;
-    if (DEBUG) Serial.print("got to VICTORY 1");
-  }
-
-
-
-  presentLevel = 0; // we will now load presentLevel with highest level achieved
-  for(i = 0; i < NUM_LEDS; i++) {
-    if(voltish >= ledLevels[i]){
-      ledState[i]=STATE_ON;
-      presentLevel = i; // presentLevel should equal the highest LED level
-    }
-    else
-      ledState[i]=STATE_OFF;
-  }
-
-  if (situation == VICTORY) presentLevel = 10; // tell the other box we won!
-  if (situation == FAILING) presentLevel = 0; // tell the other box the sad truth
-
-  if (dangerState){
-    for(i = 0; i < NUM_LEDS; i++) {
-      ledState[i] = STATE_ON; // try to keep the voltage down
-    }
-  }
-
-  if (situation == VICTORY) { // assuming victory is not over
-    if (time - victoryTime <= 3000){
-      for (i = 0; i < NUM_LEDS - 1; i++) {
-        ledState[i]=STATE_OFF; // turn them all off but the top one, which helps keep it from suddenly feeling easy.
-      }
-      ledState[((time - victoryTime) % 1000) / 100]=STATE_ON; // turn on one at a time, bottom to top, 0.1 seconds each
-    } else { // 1st victory sequence is over
-      situation=FAILING;
-      if (DEBUG) Serial.println("I switched to FAILING 1");
-      timefailurestarted = time;
-    }
-  }
-
-  if (situation == FAILING){
-      for (i = 0; i < NUM_LEDS; i++) {
-        if (i > 6) {  // WHICH LEVELS ARE ON DURING FAILING / DRAINING
-          ledState[i]=STATE_ON;
-        } else {
-          ledState[i]=STATE_OFF;
-        }
-      }
-  }
-
-  if (situation == IDLING){
-    for (i = 0; i < NUM_LEDS; i++) {
-      // WHICH LEVELS ARE ON DURING FAILING / DRAINING
-      ledState[i]=STATE_OFF;
-    }
-  }
-
-}
-
-void playGameHealthy() {
   // we control the halogens only with total voltage
   static const float threshold_for_halogens = 13.0;
   // we control the column LEDs with some combo of voltage and accumulated team effort
@@ -489,13 +385,13 @@ void doLeds(){
 } // END doLeds()
 
 void doSafety() {
-  if (volts > MAX_VOLTS){
+  if (relayState == STATE_OFF && volts > MAX_VOLTS) {
     digitalWrite(RELAYPIN, HIGH);
     relayState = STATE_ON;
     if (DEBUG) Serial.println("RELAY OPEN");
   }
 
-  if (relayState == STATE_ON && situation != FAILING && volts < RECOVERY_VOLTS){
+  if (relayState == STATE_ON && volts < RECOVERY_VOLTS){
     digitalWrite(RELAYPIN, LOW);
     relayState = STATE_OFF;
     if (DEBUG) Serial.println("RELAY CLOSED");
