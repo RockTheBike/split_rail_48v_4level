@@ -398,9 +398,9 @@ void playGame() {
 
 void playGameHealthy() {
   // we control the halogens only with total voltage
-  static const float threshold_for_halogens = 12;
+  static const float threshold_for_halogens = 13.0;
   // we control the column LEDs with some combo of voltage and accumulated team effort
-  static const float threshold_for_column_led[] = { 6.0, 8.0, 9.0, 10.0, 11.0 };
+  static const float threshold_for_column_led[] = { 6.0, 8.0, 9.5, 10.75, 12.0 };
   for( int team=0; team<NUM_TEAMS; team++ )
     for( int col=0; col<NUM_COLUMNS; col++ )
       ledState[TEAM_COLUMN_PIN[team][col]] =
