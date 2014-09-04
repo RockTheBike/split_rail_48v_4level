@@ -30,12 +30,16 @@
 char versionStr[] = "Single-Rail 12 volt sLEDgehammer for two teams at the Solar Living Center ver. 2.6 branch:solarliving";
 
 // PINS
-#define RELAYPIN 2 // relay cutoff output pin // NEVER USE 13 FOR A RELAY
+#define RELAYPIN 13 // relay cutoff output pin // (why should we) NEVER USE 13 FOR A RELAY (?) 
+#define HALOGENPIN 12
+const int TEAM_COLUMN_PIN[][] = {
+  { 3, 4, 5, 6, 7 },
+  { 8, 9, 10, 11, 12 } };
 #define VOLTPIN A0 // Voltage Sensor Pin
 #define AMPSPIN A3 // Current Sensor Pin
-#define NUM_LEDS 10 // Number of LED outputs.
+#define NUM_LEDS 11 // Number of LED outputs.
 const int ledPins[NUM_LEDS] = {
-  3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+  3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 };
 
 // levels at which each LED turns on (not including special states)
 const float ledLevels[NUM_LEDS+1] = {
@@ -282,6 +286,8 @@ FAILING is for voltage (actual, not adjusted) to fall below 13.5 .
 
 void playGame() {
 
+  playGameHealthy();
+
   // Am I idling?
 
   if (volts < 12 && situation != PLAYING && situation != JUSTBEGAN) {
@@ -387,6 +393,18 @@ void playGame() {
     }
   }
 
+}
+
+void playGameHealthy() {
+  // we control the halogens only with total voltage
+  static const float threshold_for_halogens = 12;
+  // we control the column LEDs with some combo of voltage and accumulated team effort
+  static const float threshold_for_column_led[] = { 6.0, 8.0, 9.0, 10.0, 11.0 };
+  for( int team=0; team<2; team++ )
+    for( int col=0; col<5; col++ )
+      ledState[TEAM_COLUMN_PIN[team][col]] =
+        effort_by_team[team] > threshold_for_column_led[col] ? STATE_ON : STATE_OFF;
+  ledState[HALOGENPIN] = voltish > threshold_for_halogens ? STATE_ON : STATE_OFF;
 }
 
 
