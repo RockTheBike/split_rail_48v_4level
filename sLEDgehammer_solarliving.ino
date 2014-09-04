@@ -57,15 +57,6 @@ int brightness = 0;  // analogWrite brightness value, updated by getVoltageAndBr
 #define BRIGHTNESSFACTOR (BRIGHTNESSBASE / BRIGHTNESSVOLTAGE) / 2 // results in half PWM at double voltage
 // for every volt over BRIGHTNESSVOLTAGE, pwm is reduced by BRIGHTNESSFACTOR from BRIGHTNESSBASE
 
-// FAKE AC POWER VARIABLES
-#define KNOBPIN A4
-int knobAdc = 0;
-void doKnob(){ // look in calcWatts() to see if this is commented out
-  knobAdc = 1013 - analogRead(KNOBPIN); // clockwise 50K knob wired on two-conductor cable to 50K resistor
-  if (knobAdc < 0) knobAdc = 0; // values 0-10 count as zero
-  knobAdc *= 2; // 50K knob wired on two-conductor cable to 50K resistor
-}
-
 int analogState[NUM_LEDS] = {0}; // stores the last analogWrite() value for each LED
                                  // so we don't analogWrite unnecessarily!
 
@@ -178,7 +169,6 @@ void loop() {
   getVolts();
   doSafety();
   realVolts = volts; // save realVolts for printDisplay function
-  fakeVoltage(); // adjust 'volts' according to knob
 
   if (time - vRTime > 1000)  // we do this once per second exactly
     updateVoltRecord();
@@ -204,16 +194,6 @@ void loop() {
   }
 
 }
-
-#define FAKEDIVISOR 2900 // 2026 allows doubling of voltage, 3039 allows 50% increase, etc..
-float fakeVoltage() {
-  doKnob(); // read knob value into knobAdc
-  float multiplier = (float)FAKEDIVISOR / (float)(FAKEDIVISOR - knobAdc);
-  volts = volts * multiplier; // turning knob up returns higher voltage
-
-  // JAKE -- research how to do 'return'. It wasn't working so I changed to the volts = ... above.
-
-} // if knob is all the way down, voltage is returned unchanged
 
 void updateVoltRecord() {
   if ( voltish < volts2SecondsAgo + 0.1) { // stuck or slow drift
@@ -270,22 +250,6 @@ void doBlink(){
 
 }
 
-/*
-1. advance from voltage level 1 to 10, each time turning on more stripes of
-light. Here are the voltage targets: 14,16,18, 19, 20, 21, 22, 22.5, 23.25, 24
-2. If the person gets to level 10 and holds it for more than 3 seconds, do
-the reward sequence.
-3. Reward: bottom to top with 0.1S intervals 3 times, then ALL ON to get rid
-of the power and bring it back down so it's ready for the next pedaler.
-4. We will use a difficulty knob. The Voltish concept worked well in the
-past. All the way left means a 30% reduction in voltage targets. I need to
-know how to wire it.
-5. We will possibly need to implement some type of averaging or hysteresis
-so it someone is out of the saddle pedaling, the lights don't pulse to their
-pedaling.
-* if the voltage doesn't increase for 30 seconds, turn on the halogens to
-  drain the patient to 12v
-*/
 
 void doLeds(){
 
@@ -356,12 +320,12 @@ void getVolts(){
   voltsAdcAvg = average(voltsAdc, voltsAdcAvg);
   volts = adc2volts(voltsAdcAvg);
 
-  //  brightness = 255 - BRIGHTNESSBASE * (1.0 - (brightnessKnobFactor * (1023 - analogRead(knobpin))));  // the knob affects brightnes
-
   brightness = BRIGHTNESSBASE;  // full brightness unless dimming is required
   if (volts > BRIGHTNESSVOLTAGE)
     brightness -= (BRIGHTNESSFACTOR * (volts - BRIGHTNESSVOLTAGE));  // brightness is reduced by overvoltage
   // this means if voltage is 28 volts over, PWM will be 255 - (28*4.57) or 127, 50% duty cycle
+
+  voltish = volts;
 }
 
 float average(float val, float avg){
@@ -380,8 +344,6 @@ float adc2amps(float adc){
 
 void calcWatts(){
   watts = volts * amps;
-//  doKnob(); // only if we have a knob to look at
-//  watts += knobAdc / 2; // uncomment this line too
 }
 
 void calcWattHours(){
@@ -407,8 +369,6 @@ void printDisplay(){
   if (DEBUG) Serial.print("v ");
   if (DEBUG) Serial.print(volts);
   if (DEBUG) Serial.print("fv ");
-  if (DEBUG) Serial.print(knobAdc);
-  if (DEBUG) Serial.print("knobAdc ");
   if (DEBUG && voltishFactor > 1.0) Serial.print(voltish);
   if (DEBUG && voltishFactor > 1.0) Serial.print("voltish ");
   // if (DEBUG) Serial.print(analogRead(VOLTPIN));
