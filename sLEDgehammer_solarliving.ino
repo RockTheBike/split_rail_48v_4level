@@ -230,23 +230,9 @@ FAILING is for voltage (actual, not adjusted) to fall below 13.5 .
 
 */
 
-  if (time - vRTime > 1000) { // we do this once per second exactly
-    if(situation == JUSTBEGAN){
-       if (time-timeArbduinoTurnedOn > 2200) situation = IDLING;
-    }
-    if ( voltish < volts2SecondsAgo + 0.1) { // stuck or slow drift
-        timeSinceVoltageBeganFalling++;
-      } else {
-        timeSinceVoltageBeganFalling = 0;
-      }
+  if (time - vRTime > 1000)  // we do this once per second exactly
+    updateVoltRecord();
 
-    vRTime += 1000; // add a second to the timer index
-    voltRecord[vRIndex] = voltish; // store the value. JAKE doing vRIndex++ didn't work. needed to be on two separate lines.
-    vRIndex++;
-    if (vRIndex >= VRSIZE) vRIndex = 0; // wrap the counter if necessary
-    // What's the situation?
-
-  }
   // Am I idling?
 
   if (volts < 12 && situation != PLAYING && situation != JUSTBEGAN) {
@@ -324,6 +310,21 @@ float fakeVoltage() {
   // JAKE -- research how to do 'return'. It wasn't working so I changed to the volts = ... above.
 
 } // if knob is all the way down, voltage is returned unchanged
+
+void updateVoltRecord() {
+  if(situation == JUSTBEGAN){
+      if (time-timeArbduinoTurnedOn > 2200) situation = IDLING;
+  }
+  if ( voltish < volts2SecondsAgo + 0.1) { // stuck or slow drift
+    timeSinceVoltageBeganFalling++;
+  } else {
+    timeSinceVoltageBeganFalling = 0;
+  }
+  vRTime += 1000; // add a second to the timer index
+  voltRecord[vRIndex] = voltish; // store the value. JAKE doing vRIndex++ didn't work. needed to be on two separate lines.
+  vRIndex++;
+  if (vRIndex >= VRSIZE) vRIndex = 0; // wrap the counter if necessary
+}
 
 void  resetVoltRecord() {
   for(i = 0; i < VRSIZE; i++) {
