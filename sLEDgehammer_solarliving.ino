@@ -30,8 +30,11 @@
 char versionStr[] = "Single-Rail 12 volt sLEDgehammer for two teams at the Solar Living Center ver. 2.6 branch:solarliving";
 
 // PINS
-#define RELAYPIN 13 // relay cutoff output pin // (why should we) NEVER USE 13 FOR A RELAY (?) 
-#define HALOGENPIN 12
+// NEVER USE 13 FOR A RELAY:
+// Some bootloaders flash pin 13; that could arc a relay or damage equipment
+// see http://arduino.cc/en/Hacking/Bootloader
+#define RELAYPIN 12 // relay cutoff output pin
+#define HALOGENPIN 13
 #define NUM_TEAMS 2
 #define NUM_COLUMNS 5
 const int TEAM_COLUMN_PIN[NUM_TEAMS][NUM_COLUMNS] = {
