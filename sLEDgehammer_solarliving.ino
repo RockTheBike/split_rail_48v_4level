@@ -37,9 +37,10 @@ char versionStr[] = "Single-Rail 12 volt sLEDgehammer for two teams at the Solar
 #define HALOGENPIN 13
 #define NUM_TEAMS 2
 #define NUM_COLUMNS 5
-const int TEAM_COLUMN_PIN[NUM_TEAMS][NUM_COLUMNS] = {
-  { 2, 3, 4, 5, 6 },
-  { 7, 8, 9, 10, 11 } };
+const int LED_FOR_TEAM_COLUMN[NUM_TEAMS][NUM_COLUMNS] = {
+  // index into ledPins
+  { 0, 1, 2, 3, 4 },
+  { 5, 6, 7, 8, 9 } };
 #define VOLTPIN A0 // Voltage Sensor Pin
 #define AMPSPIN A3 // Current Sensor Pin
 #define NUM_LEDS 11 // Number of LED outputs.
@@ -221,7 +222,7 @@ void playGame() {
   static const float threshold_for_column_led[] = { 6.0, 8.0, 9.5, 10.75, 12.0 };
   for( int team=0; team<NUM_TEAMS; team++ )
     for( int col=0; col<NUM_COLUMNS; col++ )
-      ledState[TEAM_COLUMN_PIN[team][col]] =
+      ledState[LED_FOR_TEAM_COLUMN[team][col]] =
         // TODO:  use something like effort_by_team[team] instead of voltage
         voltish > threshold_for_column_led[col] ? STATE_ON : STATE_OFF;
   ledState[HALOGENPIN] = voltish > threshold_for_halogens ? STATE_ON : STATE_OFF;
