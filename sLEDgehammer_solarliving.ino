@@ -230,22 +230,43 @@ void playGame() {
 }
 
 void circlingAnimation() {
-  static int frame_index = 0;
+  #define MILLIS_PER_FRAME 500
+  static int frame_index = 0;  // the frame we're heading towards
+  static unsigned long time_for_next_frame;
   const int frames[][NUM_LEDS] = {
     { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
     { 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
     { 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0 },
     { 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0 },
-    { 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 },
-    { 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0 },
-    { 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0 },
-    { 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0 },
     { 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0 },
-    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0 },
-    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 } };
+    { 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0 } };
+  const int* old_frame;
+  const int* new_frame = &frames[0][0];
+  // advance to (or initialize) the next frame when necessary
+  if( time >= time_for_next_frame ) {
+    time_for_next_frame =
+      ( time_for_next_frame ? time_for_next_frame : time ) + MILLIS_PER_FRAME;
+  frame_index = (frame_index+1) % (sizeof(frames)/sizeof(*frames));
+    Serial.print("incremented frame_index to ");
+    Serial.print(frame_index);
+    Serial.print(" at ");
+    Serial.println(time);
+    old_frame = new_frame;
+    new_frame = &frames[frame_index][0];
+  }
+  // PWM via picking between frames with increasing probability of later frame
+  int r = rand();
+  /*
+  Serial.print("rand is ");
+  Serial.print(r);
+  Serial.print("; picking ");
+  Serial.println( r < RAND_MAX / MILLIS_PER_FRAME * ( time_for_next_frame - time ) ? "old_frame" : "new_frame" );
+  */
+  const int* frame = r < RAND_MAX / MILLIS_PER_FRAME * ( time_for_next_frame - time ) ? old_frame : new_frame;
   for( i=0; i<NUM_LEDS; i++ )
-    ledState[i] = frames[frame_index][i] ? STATE_ON : STATE_OFF;
-  frame_index = (frame_index+1) % sizeof(frames)/sizeof(*frames);
+    ledState[i] = frame[i] ? STATE_ON : STATE_OFF;
 }
 
 void doBlink(){
