@@ -174,11 +174,7 @@ void loop() {
   if (time - vRTime > 1000)  // we do this once per second exactly
     updateVoltRecord();
 
-  if (dangerState){
-    for(i = 0; i < NUM_LEDS; i++) {
-      ledState[i] = STATE_ON; // try to keep the voltage down
-    }
-  } else {
+  if(!dangerState) {
     // playGame();
     circlingAnimation();
   }
@@ -339,6 +335,11 @@ void doSafety() {
     digitalWrite(RELAYPIN, HIGH);
     relayState = STATE_ON;
     if (DEBUG) Serial.println("RELAY OPEN");
+    // try to keep the voltage down
+    for(i = 0; i < NUM_LEDS; i++) {
+      digitalWrite(ledPins[i], HIGH);
+    }
+    delay(2000);
   }
 
   if (relayState == STATE_ON && volts < RECOVERY_VOLTS){
