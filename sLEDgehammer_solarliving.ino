@@ -230,7 +230,7 @@ void playGame() {
 }
 
 void circlingAnimation() {
-  static int millis_until_next_frame = 500;
+  static int millis_until_next_frame = 2000;
   static int old_frame_index;
   static int new_frame_index = 0;
   static unsigned long time_for_next_frame;
@@ -245,8 +245,23 @@ void circlingAnimation() {
     { 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0 } };
   // advance to (or initialize) the next frame when necessary
   if( time >= time_for_next_frame ) {
-    // so 0->2000 and 14->50
-    millis_until_next_frame = 2000 - volts/14.0 * (2000-50);
+    // we want 0->2000, 14->50, 13->100
+    // m = a * v**2 + b * v + c
+    // 2000 = a * 0**2 + b * 0 + c
+    // 50 = a * 14**2 + b * 14 + c
+    // 100 = a * 13**2 + b * 13 + c
+    // c = 2000
+    // -1950 = a * 14**2 + b * 14
+    // -1900 = a * 13**2 + b * 13
+    // -1950 = a * 196 + b * 14
+    // -1900 = a * 169 + b * 13
+    // -25350 = a * 2548 + b * 182
+    // -26600 = a * 2366 + b * 182
+    // 1250 = a * 182
+    // 6.868 = a
+    // -1900 = 6.868 * 169 + b * 13
+    // -235.4378 = b
+    millis_until_next_frame = 6.868 * volts*volts + -235.4378 * volts + 2000;
     time_for_next_frame =
       ( time_for_next_frame ? time_for_next_frame : time ) + millis_until_next_frame;
     old_frame_index = new_frame_index;
