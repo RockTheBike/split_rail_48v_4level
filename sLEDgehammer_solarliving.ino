@@ -37,15 +37,18 @@ char versionStr[] = "Single-Rail 12 volt sLEDgehammer for two teams at the Solar
 #define HALOGENPIN 13
 #define NUM_TEAMS 2
 #define NUM_COLUMNS 5
+
+// indexing into ledPins
+#define LED_FOR_SINK 10  // ie halogen energy sink
 const int LED_FOR_TEAM_COLUMN[NUM_TEAMS][NUM_COLUMNS] = {
-  // index into ledPins
   { 0, 1, 2, 3, 4 },
   { 5, 6, 7, 8, 9 } };
+
 #define VOLTPIN A0 // Voltage Sensor Pin
 const int AMPSPINS[NUM_TEAMS] = { A3, A2 };  // Current Sensor Pins
-#define NUM_LEDS 11 // Number of LED outputs.
+#define NUM_LEDS 11 // Number of LED outputs (includes (halogen) energy sink)
 const int ledPins[NUM_LEDS] = {
-  2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13 };
+  2, 3, 4, 5, 6, 7, 8, 9, 10, 11, HALOGENPIN };
 
 #define BRIGHTNESSVOLTAGE 24.0  // voltage at which LED brightness starts to fold back
 #define BRIGHTNESSBASE 255  // maximum brightness value (255 is max value here)
@@ -88,16 +91,11 @@ int voltsAdc = 0;
 float voltsAdcAvg = 0;
 float volts,realVolts = 0;
 
-#define IDLING 0 // haven't been pedaled yet, or after draining is over
-#define CHARGING 1 // someone is pedalling, at least not letting voltage fall
-#define FAILING 2 // voltage has fallen in the past 30 seconds, so we drain
-#define VICTORY 3 // the winning display is activated until we're drained
-#define PLAYING 4 // the winning display is activated until we're drained
-#define JUSTBEGAN 5
+# define THERMOMETER_STATE 0
+# define PARTY_STATE 1
+# define DRAIN_STATE 2
+int gameState = THERMOMETER_STATE;
 
-
-#define WINTIME 3000 // how many milliseconds you need to be at top level before you win
-#define LOSESECONDS 30 // how many seconds ago your voltage is compared to see if you gave up
 #define VRSIZE 40 // must be greater than LOSESECONDS but not big enough to use up too much RAM
 
 float voltRecord[VRSIZE] = { 0 }; // we store voltage here once per second
@@ -174,8 +172,7 @@ void loop() {
     updateVoltRecord();
 
   if(!dangerState) {
-    // playGame();
-    circlingAnimation();
+    playGame();
   }
 
   doBlink();  // blink the LEDs
@@ -208,51 +205,69 @@ void  resetVoltRecord() {
 
 
 void playGame() {
-  // we control the halogens only with total voltage
-  static const float threshold_for_halogens = 13.0;
-  // we control the column LEDs with some combo of voltage and accumulated team effort
-  static const float threshold_for_column_led[] = { 6.0, 8.0, 9.5, 10.75, 12.0 };
-  for( int team=0; team<NUM_TEAMS; team++ )
-    for( int col=0; col<NUM_COLUMNS; col++ )
-      ledState[LED_FOR_TEAM_COLUMN[team][col]] =
-        // TODO:  use something like effort_by_team[team] instead of voltage
-        voltish > threshold_for_column_led[col] ? STATE_ON : STATE_OFF;
-  ledState[HALOGENPIN] = voltish > threshold_for_halogens ? STATE_ON : STATE_OFF;
+  switch(gameState) {
+  case THERMOMETER_STATE:
+    gameState = thermometerAnimation();
+  break;
+  case PARTY_STATE:
+    gameState = partyAnimation();
+  break;
+  case DRAIN_STATE:
+    gameState = drainAnimation();
+  break;
+  }
 }
 
-void circlingAnimation() {
+int thermometerAnimation() {
+  #define VICTORY_THRESHOLD 12.5
+  // we control the column LEDs with some combo of voltage and accumulated team effort
+  static const float threshold_for_column_led[] = { 6.0, 8.0, 9.25, 10.5, 11.5 };
+  for( int team=0; team<NUM_TEAMS; team++ )
+    for( int col=0; col<NUM_COLUMNS; col++ ) {
+      float creditedVolts = voltish * ampsAdcAvg[team] / max(ampsAdcAvg[0],ampsAdcAvg[1]);
+      ledState[LED_FOR_TEAM_COLUMN[team][col]] =
+        creditedVolts > threshold_for_column_led[col] ? STATE_ON : STATE_OFF;
+    }
+  ledState[LED_FOR_SINK] = STATE_OFF;
+  // TODO:  if( no_one's_given_energy_in_5s ) return DRAIN_STATE;
+  return voltish > VICTORY_THRESHOLD ? PARTY_STATE : THERMOMETER_STATE;
+}
+
+int partyAnimation() {
+  #define SUSTAINED_VICTORY_THRESHOLD 11.0
   static int millis_until_next_frame = 2000;
   static int old_frame_index;
   static int new_frame_index = 0;
   static unsigned long time_for_next_frame;
+  // turn on halogen sink so sudden drop in load doesn't overpower capacitor
   const int frames_single_clockwise[][NUM_LEDS] = {
-    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-    { 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-    { 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0 },
-    { 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0 },
-    { 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 },
-    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0 },
-    { 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0 },
-    { 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0 },
-    { 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0 },
-    { 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0 } };
+    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+    { 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+    { 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1 },
+    { 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1 },
+    { 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1 },
+    { 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1 },
+    { 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1 },
+    { 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 } };
   const int frames_double_wide[][NUM_LEDS] = {
-    { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-    { 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 },
-    { 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0 },
-    { 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0 },
-    { 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0 },
-    { 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0 },
-    { 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0 },
-    { 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0 },
-    { 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0 },
-    { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0 } };
+    { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+    { 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1 },
+    { 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1 },
+    { 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1 },
+    { 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1 },
+    { 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1 },
+    { 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1 },
+    { 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1 },
+    { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 } };
   const int frames_opposite[][NUM_LEDS] = {
-    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0 },
-    { 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0 },
-    { 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0 },
-    { 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0 },
-    { 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0 } };
+    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1 },
+    { 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1 },
+    { 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1 },
+    { 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1 },
+    { 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1 } };
   #define frames frames_double_wide
   // advance to (or initialize) the next frame when necessary
   if( time >= time_for_next_frame ) {
@@ -282,7 +297,16 @@ void circlingAnimation() {
   int frame_index = rand() < RAND_MAX / millis_until_next_frame * ( time_for_next_frame - time ) ? old_frame_index : new_frame_index;
   for( i=0; i<NUM_LEDS; i++ )
     ledState[i] = frames[frame_index][i] ? STATE_ON : STATE_OFF;
+  return voltish > SUSTAINED_VICTORY_THRESHOLD ? PARTY_STATE : DRAIN_STATE;
 }
+
+int drainAnimation() {
+  #define DRAINED_THRESHOLD 6.0
+  for( i=0; i<NUM_LEDS; i++ )
+    ledState[i] = STATE_ON;
+  return voltish < DRAINED_THRESHOLD ? THERMOMETER_STATE : DRAIN_STATE;
+}
+
 
 void doBlink(){
 
@@ -439,8 +463,8 @@ void printDisplay(){
   // if (DEBUG) Serial.print(analogRead(VOLTPIN));
   if (DEBUG) Serial.print("   relayState: ");
   if (DEBUG) Serial.print(relayState);
-  if (DEBUG) Serial.print("  time - topLevelTime: ");
-  if (DEBUG) Serial.print(time - topLevelTime);
+  if (DEBUG) Serial.print("  gameState: ");
+  if (DEBUG) Serial.print(gameState);
   if (DEBUG) Serial.print("  efforts:");
   if (DEBUG) Serial.print(ampsAdcAvg[0]);
   if (DEBUG) Serial.print( winning_team ? '<' : '>' );
