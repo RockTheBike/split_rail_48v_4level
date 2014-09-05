@@ -42,7 +42,7 @@ const int LED_FOR_TEAM_COLUMN[NUM_TEAMS][NUM_COLUMNS] = {
   { 0, 1, 2, 3, 4 },
   { 5, 6, 7, 8, 9 } };
 #define VOLTPIN A0 // Voltage Sensor Pin
-const int AMPSPINS[NUM_TEAMS] = { A3, A2 };  // Current Sensor Pins  // TODO:  fix guess for second team
+const int AMPSPINS[NUM_TEAMS] = { A3, A2 };  // Current Sensor Pins
 #define NUM_LEDS 11 // Number of LED outputs.
 const int ledPins[NUM_LEDS] = {
   2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13 };
@@ -107,6 +107,8 @@ unsigned long vRTime = 0; // last time we stored a voltRecord
 //Current related variables
 int ampsAdc = 0;
 float ampsAdcAvg[NUM_TEAMS];
+const float ampsBase[NUM_TEAMS] = { 511.00, 507.85 };  // measurement with zero current
+const float ampsScale[NUM_TEAMS] = { 1, -1 };
 float amps = 0;
 int winning_team;
 float volts2SecondsAgo = 0;
@@ -366,7 +368,7 @@ void doSafety() {
 // use the ratio to determine who's winning
 void updateTeamEfforts() {
   for( i=0; i<NUM_TEAMS; i++ ) {
-    ampsAdc = analogRead(AMPSPINS[i]);
+    ampsAdc = ( analogRead(AMPSPINS[i]) - ampsBase[i] ) * ampsScale[i];
     // TODO:  extend longer history for average
     ampsAdcAvg[i] = average(ampsAdc, ampsAdcAvg[i]);
   }
