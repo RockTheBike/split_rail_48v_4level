@@ -179,7 +179,8 @@ void loop() {
       ledState[i] = STATE_ON; // try to keep the voltage down
     }
   } else {
-    playGame();
+    // playGame();
+    circlingAnimation();
   }
 
   //  getAmps();  // only if we have a current sensor
@@ -228,6 +229,24 @@ void playGame() {
   ledState[HALOGENPIN] = voltish > threshold_for_halogens ? STATE_ON : STATE_OFF;
 }
 
+void circlingAnimation() {
+  static int frame_index = 0;
+  const int frames[][NUM_LEDS] = {
+    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 } };
+  for( i=0; i<NUM_LEDS; i++ )
+    ledState[i] = frames[frame_index][i] ? STATE_ON : STATE_OFF;
+  frame_index = (frame_index+1) % sizeof(frames)/sizeof(*frames);
+}
 
 void doBlink(){
 
