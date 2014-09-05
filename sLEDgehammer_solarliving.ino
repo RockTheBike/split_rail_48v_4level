@@ -60,6 +60,7 @@ int analogState[NUM_LEDS] = {0}; // stores the last analogWrite() value for each
                                  // so we don't analogWrite unnecessarily!
 
 #define AVG_CYCLES 50 // average measured values over this many samples
+#define LONG_AVG_CYCLES 5000  // "long" average (eg team effort) measured values over this many samples
 #define DISPLAY_INTERVAL 500 // when auto-display is on, display every this many milli-seconds
 #define LED_UPDATE_INTERVAL 1000
 #define D4_AVG_PERIOD 10000
@@ -398,8 +399,7 @@ void doSafety() {
 void updateTeamEfforts() {
   for( i=0; i<NUM_TEAMS; i++ ) {
     ampsAdc = ( analogRead(AMPSPINS[i]) - ampsBase[i] ) * ampsScale[i];
-    // TODO:  extend longer history for average
-    ampsAdcAvg[i] = average(ampsAdc, ampsAdcAvg[i]);
+    ampsAdcAvg[i] = long_average(ampsAdc, ampsAdcAvg[i]);
   }
   winning_team = ampsAdcAvg[0] > ampsAdcAvg[1];
 }
@@ -421,6 +421,12 @@ float average(float val, float avg){
   if(avg == 0)
     avg = val;
   return (val + (avg * (AVG_CYCLES - 1))) / AVG_CYCLES;
+}
+
+float long_average(float val, float avg){
+  if(avg == 0)
+    avg = val;
+  return (val + (avg * (LONG_AVG_CYCLES - 1))) / LONG_AVG_CYCLES;
 }
 
 float adc2volts(float adc){
