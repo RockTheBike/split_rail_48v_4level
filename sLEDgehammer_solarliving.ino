@@ -230,7 +230,7 @@ void playGame() {
 }
 
 void circlingAnimation() {
-  #define MILLIS_PER_FRAME 500
+  static int millis_until_next_frame = 500;
   static int old_frame_index;
   static int new_frame_index = 0;
   static unsigned long time_for_next_frame;
@@ -245,13 +245,15 @@ void circlingAnimation() {
     { 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0 } };
   // advance to (or initialize) the next frame when necessary
   if( time >= time_for_next_frame ) {
+    // so 0->2000 and 14->50
+    millis_until_next_frame = 2000 - volts/14.0 * (2000-50);
     time_for_next_frame =
-      ( time_for_next_frame ? time_for_next_frame : time ) + MILLIS_PER_FRAME;
+      ( time_for_next_frame ? time_for_next_frame : time ) + millis_until_next_frame;
     old_frame_index = new_frame_index;
     new_frame_index = (new_frame_index+1) % (sizeof(frames)/sizeof(*frames));
   }
   // PWM via picking between frames with increasing probability of later frame
-  int frame_index = rand() < RAND_MAX / MILLIS_PER_FRAME * ( time_for_next_frame - time ) ? old_frame_index : new_frame_index;
+  int frame_index = rand() < RAND_MAX / millis_until_next_frame * ( time_for_next_frame - time ) ? old_frame_index : new_frame_index;
   for( i=0; i<NUM_LEDS; i++ )
     ledState[i] = frames[frame_index][i] ? STATE_ON : STATE_OFF;
 }
