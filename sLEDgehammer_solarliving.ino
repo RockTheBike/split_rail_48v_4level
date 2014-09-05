@@ -239,8 +239,6 @@ void circlingAnimation() {
     { 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0 },
     { 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0 },
     { 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0 } };
-  const int* old_frame;
-  const int* new_frame = &frames[0][0];
   // advance to (or initialize) the next frame when necessary
   if( time >= time_for_next_frame ) {
     // we want 0->2000, 14->50, 13->100
