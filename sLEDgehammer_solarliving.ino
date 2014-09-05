@@ -42,15 +42,10 @@ const int LED_FOR_TEAM_COLUMN[NUM_TEAMS][NUM_COLUMNS] = {
   { 0, 1, 2, 3, 4 },
   { 5, 6, 7, 8, 9 } };
 #define VOLTPIN A0 // Voltage Sensor Pin
-#define AMPSPIN A3 // Current Sensor Pin
+const int AMPSPINS[NUM_TEAMS] = { A3, A2 };  // Current Sensor Pins  // TODO:  fix guess for second team
 #define NUM_LEDS 11 // Number of LED outputs.
 const int ledPins[NUM_LEDS] = {
   2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13 };
-
-// levels at which each LED turns on (not including special states)
-const float ledLevels[NUM_LEDS+1] = {
-  14, 16, 18, 19, 20, 21, 22, 22.5, 23.25, 24, 0 }; // last value unused in sledge
-//  24.0, 32.0, 40.0, 48.0, 50.0};
 
 #define BRIGHTNESSVOLTAGE 24.0  // voltage at which LED brightness starts to fold back
 #define BRIGHTNESSBASE 255  // maximum brightness value (255 is max value here)
@@ -111,8 +106,9 @@ unsigned long vRTime = 0; // last time we stored a voltRecord
 
 //Current related variables
 int ampsAdc = 0;
-float ampsAdcAvg = 0;
+float ampsAdcAvg[NUM_TEAMS];
 float amps = 0;
+int winning_team;
 float volts2SecondsAgo = 0;
 
 float watts = 0;
@@ -169,6 +165,7 @@ void loop() {
   time = millis();
   getVolts();
   doSafety();
+  updateTeamEfforts();
   realVolts = volts; // save realVolts for printDisplay function
 
   if (time - vRTime > 1000)  // we do this once per second exactly
@@ -179,10 +176,6 @@ void loop() {
     circlingAnimation();
   }
 
-  //  getAmps();  // only if we have a current sensor
-  //  calcWatts(); // also adds in knob value for extra wattage, unless commented out
-
-  //  if it's been at least 1/4 second since the last time we measured Watt Hours...
   doBlink();  // blink the LEDs
   doLeds();
 
@@ -369,11 +362,15 @@ void doSafety() {
 }
 
 
-
-void getAmps(){
-  ampsAdc = analogRead(AMPSPIN);
-  ampsAdcAvg = average(ampsAdc, ampsAdcAvg);
-  amps = adc2amps(ampsAdcAvg);
+// keep a decaying average of each team's aperage;
+// use the ratio to determine who's winning
+void updateTeamEfforts() {
+  for( i=0; i<NUM_TEAMS; i++ ) {
+    ampsAdc = analogRead(AMPSPINS[i]);
+    // TODO:  extend longer history for average
+    ampsAdcAvg[i] = average(ampsAdc, ampsAdcAvg[i]);
+  }
+  winning_team = ampsAdcAvg[0] > ampsAdcAvg[1];
 }
 
 void getVolts(){
@@ -437,27 +434,9 @@ void printDisplay(){
   if (DEBUG) Serial.print(relayState);
   if (DEBUG) Serial.print("  time - topLevelTime: ");
   if (DEBUG) Serial.print(time - topLevelTime);
-  if (DEBUG) Serial.print("  Voltage has been flat or falling for ");
-  if (DEBUG) Serial.print(timeSinceVoltageBeganFalling);
-  if (DEBUG) Serial.print(" seconds. & volts2Secondsago = ");
-  if (DEBUG) Serial.println(volts2SecondsAgo);
-
-  //   if (DEBUG) Serial.print("   ledLevels[numLEDS]: ");
- // if (DEBUG) Serial.println(ledLevels[NUM_LEDS]);
-   //    if (DEBUG) Serial.print("   ledLevels[numLEDS- 1]: ");
- // if (DEBUG) Serial.println(ledLevels[NUM_LEDS - 1]); JAKE
-  //  if (DEBUG) Serial.print(", a: ");
-  //  if (DEBUG) Serial.print(amps);
-  //  if (DEBUG) Serial.print(", va: ");
-  //  if (DEBUG) Serial.print(watts);
-
-  //  if (DEBUG) Serial.print(", Levels ");
-  //  for(i = 0; i < NUM_LEDS; i++) {
-  //    if (DEBUG) Serial.print(i);
-  //    if (DEBUG) Serial.print(": ");
-  //    if (DEBUG) Serial.print(ledState[i]);
-  //    if (DEBUG) Serial.print(", ");
-  //  }
-  //  if (DEBUG) Serial.println("");
-  // if (DEBUG) Serial.println();
+  if (DEBUG) Serial.print("  efforts:");
+  if (DEBUG) Serial.print(ampsAdcAvg[0]);
+  if (DEBUG) Serial.print( winning_team ? '<' : '>' );
+  if (DEBUG) Serial.print(ampsAdcAvg[1]);
+  if (DEBUG) Serial.println();
 }
