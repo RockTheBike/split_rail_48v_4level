@@ -63,7 +63,7 @@ int analogState[NUM_LEDS] = {0}; // stores the last analogWrite() value for each
                                  // so we don't analogWrite unnecessarily!
 
 #define AVG_CYCLES 50 // average measured values over this many samples
-#define DISPLAY_INTERVAL 2000 // when auto-display is on, display every this many milli-seconds
+#define DISPLAY_INTERVAL 1000 // when auto-display is on, display every this many milli-seconds
 #define LED_UPDATE_INTERVAL 1000
 #define D4_AVG_PERIOD 10000
 #define BLINK_PERIOD 600
@@ -413,18 +413,21 @@ void printWattHours(){
 
 void printDisplay(){
   Serial.print(volts);
-  Serial.print("v (");
-  Serial.println(analogRead(VOLTPIN));
+  Serial.print("v ");
+  // Serial.print(analogRead(VOLTPIN));
   //  Serial.print(", a: ");
   //  Serial.print(amps);
   //  Serial.print(", va: ");
   //  Serial.print(watts);
+  Serial.print(", lastBuckPWM: ");
+  Serial.print(lastBuckPWM);
   //  Serial.print(", voltsBuck: ");
   //  Serial.print(voltsBuck);
   Serial.print(", inverter: ");
   Serial.print(volts-voltsBuck);
   Serial.print(", voltsDivida: ");
-  Serial.print(voltsDivida);
+  if (digitalRead(DIVIDAPIN)) Serial.print("DIVIDA");
+  Serial.println(voltsDivida);
   //  Serial.print(", Levels ");
   //  for(i = 0; i < NUM_LEDS; i++) {
   //    Serial.print(i);
