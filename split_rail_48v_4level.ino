@@ -231,7 +231,7 @@ void doBuck() {
 }
 
 void doDivida() { // perform megadivida function
-  if (voltsDivida > (volts / 2 + DIVIDA_HYSTERESIS)) digitalWrite(DIVIDAPIN,HIGH); // pull virtual ground lower
+  if (voltsDivida > (volts / 2 + DIVIDA_HYSTERESIS) && volts > 7) digitalWrite(DIVIDAPIN,HIGH); // pull virtual ground lower
   if (voltsDivida < (volts / 2)) digitalWrite(DIVIDAPIN,LOW); // stop pulling it down
 }
 
@@ -241,8 +241,12 @@ void doSafety() {
     relayState = STATE_ON;
   }
 
-  if (relayState == STATE_ON && volts < RECOVERY_VOLTS){
-    digitalWrite(RELAYPIN, LOW);
+  if (relayState == STATE_ON && volts < RECOVERY_VOLTS){ // relay can turn off unless divida malfunctioning
+    if (voltsDivida > (volts / 2 + 3 * DIVIDA_HYSTERESIS) && volts > 7) { // divida is malfunctioning
+      digitalWrite(RELAYPIN, HIGH); // turn on relay because of failed divida
+    } else if (voltsDivida < (volts / 2 + 2 * DIVIDA_HYSTERESIS)) { // divida is nearly fine
+      digitalWrite(RELAYPIN, LOW); // turn relay off
+    }
     relayState = STATE_OFF;
   }
 
