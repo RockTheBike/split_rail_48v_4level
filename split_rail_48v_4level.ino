@@ -427,7 +427,7 @@ void printDisplay(){
   Serial.print(", inverter: ");
   Serial.print(volts-voltsBuck);
   Serial.print(", voltsDivida: ");
-  if (digitalRead(DIVIDAPIN)) Serial.print("DIVIDA");
+  if (digitalRead(DIVIDAPIN)) Serial.print("DRAINING: ");
   Serial.println(voltsDivida);
   //  Serial.print(", Levels ");
   //  for(i = 0; i < NUM_LEDS; i++) {
