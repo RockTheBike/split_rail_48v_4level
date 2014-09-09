@@ -175,13 +175,14 @@ void loop() {
 #define BUCK_VOLTAGE 26.0 // target voltage for inverter to be supplied with
 #define BUCK_VOLTPIN A1 // this pin measures inverter's MINUS TERMINAL voltage
 #define BUCK_HYSTERESIS 0.75 // volts above BUCK_VOLTAGE where we start regulatin
-#define BUCK_PWM_UPJUMP 0.03 // amount to raise PWM value if voltage is below BUCK_VOLTAGE
-#define BUCK_PWM_DOWNJUMP 0.15 // amount to lower PWM value if voltage is too high
+#define BUCK_PWM_UPJUMP 0.1 // amount to raise PWM value if voltage is below BUCK_VOLTAGE
+#define BUCK_PWM_DOWNJUMP 0.5 // amount to lower PWM value if voltage is too high
 float buckPWM = 0; // PWM value of pin 9
 int lastBuckPWM = 0; // make sure we don't call analogWrite if already set right
 
 void doBuck() {
   thermalAdc = analogRead(THERMALPIN); // NTC thermistor connected from ground to ADC pin, with pullup resistor
+  thermalAdc = 600; // disable temp checking for now
   thermalAdcAvg = average(thermalAdc, thermalAdcAvg);
   if (thermalAdcAvg > THERMAL_LIMIT) {  // if heatsink/thermistor is not too hot (adc BELOW limit = too hot)
     if (volts > BUCK_CUTIN) { // voltage is high enough to turn on transistors
