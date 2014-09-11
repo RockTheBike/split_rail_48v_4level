@@ -31,26 +31,16 @@
 */
 char versionStr[] = "Split-Rail 24 volt pedalometer with side indicator for minusrail ver. 2.7 branch:shakeyourpeace_external_pedalometer";
 
-// PINS
-// NEVER USE 13 FOR A RELAY:
-// Some bootloaders flash pin 13; that could arc a relay or damage equipment
-// see http://arduino.cc/en/Hacking/Bootloader
-#define RELAYPIN 12 // relay cutoff output pin
-#define HALOGENPIN 13
-#define NUM_TEAMS 2
-#define NUM_COLUMNS 5
-
-// indexing into ledPins
-#define LED_FOR_SINK 10  // ie halogen energy sink
-const int LED_FOR_TEAM_COLUMN[NUM_TEAMS][NUM_COLUMNS] = {
-  { 0, 1, 2, 3, 4 },
-  { 5, 6, 7, 8, 9 } };
-
+#define NUM_RAILS 2
 #define VOLTPIN A0 // Voltage Sensor Pin
-const int AMPSPINS[NUM_TEAMS] = { A3, A2 };  // Current Sensor Pins
-#define NUM_LEDS 11 // Number of LED outputs (includes (halogen) energy sink)
+#define MINUSVOLTPIN A1 // Voltage Sensor Input for arbduino v2
+const int VOLTPINS[NUM_RAILS] = { VOLTPIN, MINUSVOLTPIN };
+#define NUM_LEDS 8 // Number of LED outputs
 const int ledPins[NUM_LEDS] = {
-  2, 3, 4, 5, 6, 7, 8, 9, 10, 11, HALOGENPIN };
+  // plus pedalometer
+  3,4, 5,6,7, 9,
+  // minus degenerate-pedalometer / side-lights
+  10, 11 };
 
 #define BRIGHTNESSVOLTAGE 24.0  // voltage at which LED brightness starts to fold back
 #define BRIGHTNESSBASE 255  // maximum brightness value (255 is max value here)
@@ -77,27 +67,31 @@ int analogState[NUM_LEDS] = {0}; // stores the last analogWrite() value for each
 // on/off/blink/fastblink state of each led
 int ledState[NUM_LEDS] = {
   STATE_OFF};
+// referencing in order:
+// plus bottom through plus top, then minus bottom through minus top
+#define PLUS_BOTTOM 0
+#define PLUS_TOP 4
+#define MINUS_BOTTOM 5
+#define MINUS_TOP 6
+int BOTTOM_LED[NUM_RAILS] = { PLUS_BOTTOM, MINUS_BOTTOM };
+int TOP_LED[NUM_RAILS] = { PLUS_TOP, MINUS_TOP };
 
-#define MAX_VOLTS 13.5
-#define RECOVERY_VOLTS 13.0
 int relayState = STATE_OFF;
-
-#define DANGER_VOLTS 13.7
-int dangerState = STATE_OFF;
 
 int blinkState = 0;
 int fastBlinkState = 0;
 
 #define VOLTCOEFF 13.179  // larger number interprets as lower voltage
+const int VOLT_PRE_OFFSET[NUM_RAILS] = { 0, 1023 };
+const int SCALE[NUM_RAILS] = { 1, -1 };
+const float VOLT_POST_OFFSET[NUM_RAILS] = { 0, -5 };
 
-int voltsAdc = 0;
-float voltsAdcAvg = 0;
-float volts,realVolts = 0;
+#define NUM_LEVELS 6
+const float levelVolt[NUM_LEVELS] = { 22.0, 23.5, 24.8, 25.7, 26.7, 27.2 };
 
-# define THERMOMETER_STATE 0
-# define PARTY_STATE 1
-# define DRAIN_STATE 2
-int gameState = THERMOMETER_STATE;
+int voltsAdc[NUM_RAILS];
+float voltsAdcAvg[NUM_RAILS];
+float volts[NUM_RAILS];
 
 #define VRSIZE 40 // must be greater than LOSESECONDS but not big enough to use up too much RAM
 
@@ -107,32 +101,16 @@ unsigned long vRTime = 0; // last time we stored a voltRecord
 
 //Current related variables
 int ampsAdc = 0;
-float ampsAdcAvg[NUM_TEAMS];
-const float ampsBase[NUM_TEAMS] = { 511.00, 507.85 };  // measurement with zero current
-const float ampsScale[NUM_TEAMS] = { 1, -1 };
 float amps = 0;
 int winning_team;
 float volts2SecondsAgo = 0;
 
-float watts = 0;
-float wattHours = 0;
-float voltsBefore = 0;
 // timing variables for various processes: led updates, print, blink, etc
 unsigned long time = 0;
 unsigned long timeFastBlink = 0;
 unsigned long timeBlink = 0;
 unsigned long timeDisplay = 0;
-unsigned long wattHourTimer = 0;
-unsigned long victoryTime = 0; // how long it's been since we declared victory
-unsigned long topLevelTime = 0; // how long we've been at top voltage level
-unsigned long timefailurestarted = 0;
 unsigned long timeArbduinoTurnedOn = 0;
-unsigned long clearlyLosingTime = 0; // time when we last were NOT clearly losing
-unsigned long serialTime = 0; // time when last serial data was seen
-#define EMPTYTIME 1000 // how long caps must be below 13.5v to be considered empty
-#define SERIALTIMEOUT 500 // if serial data is older than this, ignore it
-#define SERIALINTERVAL 300 // how much time between sending a serial packet
-byte presentLevel = 0;  // what "level" of transistors are we lit up to right now?
 
 float voltishFactor = 1.0; // multiplier of voltage for competitive purposes
 float voltish = 0; // this is where we store the adjusted voltage
@@ -140,19 +118,14 @@ float voltish = 0; // this is where we store the adjusted voltage
 int timeSinceVoltageBeganFalling = 0;
 // var for looping through arrays
 int i = 0;
-int boxNumber; // short pin A5 to ground on boxNumber 1
+int rail;
 
 void setup() {
   Serial.begin(BAUD_RATE);
 
   if (DEBUG) Serial.println(versionStr);
 
-  pinMode(RELAYPIN, OUTPUT);
-  digitalWrite(RELAYPIN,LOW);
-
-  boxNumber = 1;  // box 1 if pin A5 is shorted to ground
   digitalWrite(A5,HIGH);  // enable pull-up resistor on A5
-  if (digitalRead(A5)) boxNumber = 2; // if A5 is not shorted to ground
 
   // init LED pins
   for(i = 0; i < NUM_LEDS; i++) {
@@ -167,22 +140,17 @@ void setup() {
 void loop() {
   time = millis();
   getVolts();
-  doSafety();
-  updateTeamEfforts();
-  realVolts = volts; // save realVolts for printDisplay function
 
   if (time - vRTime > 1000)  // we do this once per second exactly
     updateVoltRecord();
 
-  if(!dangerState) {
-    playGame();
-  }
+  playGame();
 
   doBlink();  // blink the LEDs
   doLeds();
 
   if(time - timeDisplay > DISPLAY_INTERVAL){
-    printDisplay();
+    if(DEBUG) printDisplay();
     timeDisplay = time;
   }
 
@@ -200,114 +168,42 @@ void updateVoltRecord() {
   if (vRIndex >= VRSIZE) vRIndex = 0; // wrap the counter if necessary
 }
 
-void  resetVoltRecord() {
-  for(i = 0; i < VRSIZE; i++) {
-    voltRecord[i] = volts;
-  }
-}
 
+int STATES[][NUM_LEDS] = {
+  // want visually compact table, so use integers rather than STATE_OFF etc
+  // positions:  big pedalometer: 2 red, 3 green, 1 white,  side lights: 1 red, 1 green
+  #define LEDS_OFF 0
+  { 0,0, 0,0,0, 0,  0, 0 },
+  #define LEDS_PANIC 1
+  { 1,0, 0,0,0, 0,  1, 0 },
+  #define LEDS_LOW_SAFE 2
+  { 0,1, 0,0,0, 0,  0, 1 },
+  { 0,0, 1,0,0, 0,  0, 1 },
+  { 0,0, 1,1,0, 0,  0, 1 },
+  #define LEDS_HIGH_SAFE 3
+  { 0,0, 1,1,1, 0,  0, 1 },
+  #define LEDS_OVER 4
+  { 0,0, 1,1,1, 1,  1, 1 } };
 
 void playGame() {
-  switch(gameState) {
-  case THERMOMETER_STATE:
-    gameState = thermometerAnimation();
-  break;
-  case PARTY_STATE:
-    gameState = partyAnimation();
-  break;
-  case DRAIN_STATE:
-    gameState = drainAnimation();
-  break;
+  for( int rail=0; rail<NUM_RAILS; rail++ ) {
+    int newLedStateTemplate = ledsState( volts[rail], rail );
+    for( int i=BOTTOM_LED[rail]; i<=TOP_LED[rail]; i++ )
+      ledState[i] = STATES[newLedStateTemplate][i];
   }
 }
 
-int thermometerAnimation() {
-  #define VICTORY_THRESHOLD 12.5
-  // we control the column LEDs with some combo of voltage and accumulated team effort
-  static const float threshold_for_column_led[] = { 6.0, 8.0, 9.25, 10.5, 11.5 };
-  for( int team=0; team<NUM_TEAMS; team++ )
-    for( int col=0; col<NUM_COLUMNS; col++ ) {
-      float creditedVolts = voltish * ampsAdcAvg[team] / max(ampsAdcAvg[0],ampsAdcAvg[1]);
-      ledState[LED_FOR_TEAM_COLUMN[team][col]] =
-        creditedVolts > threshold_for_column_led[col] ? STATE_ON : STATE_OFF;
-    }
-  ledState[LED_FOR_SINK] = STATE_OFF;
-  // TODO:  if( no_one's_given_energy_in_5s ) return DRAIN_STATE;
-  return voltish > VICTORY_THRESHOLD ? PARTY_STATE : THERMOMETER_STATE;
-}
-
-int partyAnimation() {
-  #define SUSTAINED_VICTORY_THRESHOLD 11.0
-  static int millis_until_next_frame = 2000;
-  static int old_frame_index;
-  static int new_frame_index = 0;
-  static unsigned long time_for_next_frame;
-  // turn on halogen sink so sudden drop in load doesn't overpower capacitor
-  const int frames_single_clockwise[][NUM_LEDS] = {
-    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-    { 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-    { 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1 },
-    { 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1 },
-    { 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1 },
-    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1 },
-    { 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1 },
-    { 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1 },
-    { 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1 },
-    { 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 } };
-  const int frames_double_wide[][NUM_LEDS] = {
-    { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-    { 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1 },
-    { 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1 },
-    { 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1 },
-    { 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1 },
-    { 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1 },
-    { 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1 },
-    { 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1 },
-    { 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1 },
-    { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 } };
-  const int frames_opposite[][NUM_LEDS] = {
-    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1 },
-    { 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1 },
-    { 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1 },
-    { 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1 },
-    { 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1 } };
-  #define frames frames_double_wide
-  // advance to (or initialize) the next frame when necessary
-  if( time >= time_for_next_frame ) {
-    // we want 0->2000, 14->50, 13->100
-    // m = a * v**2 + b * v + c
-    // 2000 = a * 0**2 + b * 0 + c
-    // 50 = a * 14**2 + b * 14 + c
-    // 100 = a * 13**2 + b * 13 + c
-    // c = 2000
-    // -1950 = a * 14**2 + b * 14
-    // -1900 = a * 13**2 + b * 13
-    // -1950 = a * 196 + b * 14
-    // -1900 = a * 169 + b * 13
-    // -25350 = a * 2548 + b * 182
-    // -26600 = a * 2366 + b * 182
-    // 1250 = a * 182
-    // 6.868 = a
-    // -1900 = 6.868 * 169 + b * 13
-    // -235.4378 = b
-    millis_until_next_frame = 6.868 * volts*volts + -235.4378 * volts + 2000;
-    time_for_next_frame =
-      ( time_for_next_frame ? time_for_next_frame : time ) + millis_until_next_frame;
-    old_frame_index = new_frame_index;
-    new_frame_index = (new_frame_index+1) % (sizeof(frames)/sizeof(*frames));
-  }
-  // PWM via picking between frames with increasing probability of later frame
-  int frame_index = rand() < RAND_MAX / millis_until_next_frame * ( time_for_next_frame - time ) ? old_frame_index : new_frame_index;
-  for( i=0; i<NUM_LEDS; i++ )
-    ledState[i] = frames[frame_index][i] ? STATE_ON : STATE_OFF;
-  return voltish > SUSTAINED_VICTORY_THRESHOLD ? PARTY_STATE : DRAIN_STATE;
-}
-
-int drainAnimation() {
-  #define DRAINED_THRESHOLD 6.0
-  for( i=0; i<NUM_LEDS; i++ )
-    ledState[i] = STATE_ON;
-  return voltish < DRAINED_THRESHOLD ? THERMOMETER_STATE : DRAIN_STATE;
+int ledsState( float v, int rail ) {
+  if( v < levelVolt[0] )
+    // TODO flash when panicing
+    return LEDS_PANIC;
+  else if( v > levelVolt[NUM_LEVELS-1] )
+    return LEDS_PANIC;
+  else if( rail == 0 ) // plus rail
+    // TODO bring up the thermometer with PWM at top
+    return LEDS_LOW_SAFE;
+  else // minus rail
+    return LEDS_LOW_SAFE;
 }
 
 
@@ -370,53 +266,20 @@ void doLeds(){
 
 } // END doLeds()
 
-void doSafety() {
-  if (relayState == STATE_OFF && volts > MAX_VOLTS) {
-    digitalWrite(RELAYPIN, HIGH);
-    relayState = STATE_ON;
-    if (DEBUG) Serial.println("RELAY OPEN");
-    // try to keep the voltage down
-    for(i = 0; i < NUM_LEDS; i++) {
-      digitalWrite(ledPins[i], HIGH);
-    }
-    delay(2000);
-  }
-
-  if (relayState == STATE_ON && volts < RECOVERY_VOLTS){
-    digitalWrite(RELAYPIN, LOW);
-    relayState = STATE_OFF;
-    if (DEBUG) Serial.println("RELAY CLOSED");
-  }
-
-  if (volts > DANGER_VOLTS){
-    dangerState = STATE_ON;
-  } else {
-    dangerState = STATE_OFF;
-  }
-}
-
-
-// keep a decaying average of each team's aperage;
-// use the ratio to determine who's winning
-void updateTeamEfforts() {
-  for( i=0; i<NUM_TEAMS; i++ ) {
-    ampsAdc = ( analogRead(AMPSPINS[i]) - ampsBase[i] ) * ampsScale[i];
-    ampsAdcAvg[i] = long_average(ampsAdc, ampsAdcAvg[i]);
-  }
-  winning_team = ampsAdcAvg[0] > ampsAdcAvg[1];
-}
 
 void getVolts(){
-  voltsAdc = analogRead(VOLTPIN);
-  voltsAdcAvg = average(voltsAdc, voltsAdcAvg);
-  volts = adc2volts(voltsAdcAvg);
+  for( rail=0; rail<NUM_RAILS; rail++ ) {
+    voltsAdc[rail] = analogRead( VOLTPINS[rail] );
+    voltsAdcAvg[rail] = average( voltsAdc[rail], voltsAdcAvg[rail] );
+    volts[rail] =
+      adc2volts( VOLT_PRE_OFFSET[rail] + SCALE[rail]*voltsAdcAvg[rail] ) +
+      VOLT_POST_OFFSET[rail];
+  }
 
   brightness = BRIGHTNESSBASE;  // full brightness unless dimming is required
-  if (volts > BRIGHTNESSVOLTAGE)
-    brightness -= (BRIGHTNESSFACTOR * (volts - BRIGHTNESSVOLTAGE));  // brightness is reduced by overvoltage
+  if (volts[0] > BRIGHTNESSVOLTAGE)
+    brightness -= (BRIGHTNESSFACTOR * (volts[0] - BRIGHTNESSVOLTAGE));  // brightness is reduced by overvoltage
   // this means if voltage is 28 volts over, PWM will be 255 - (28*4.57) or 127, 50% duty cycle
-
-  voltish = volts;
 }
 
 float average(float val, float avg){
@@ -425,57 +288,17 @@ float average(float val, float avg){
   return (val + (avg * (AVG_CYCLES - 1))) / AVG_CYCLES;
 }
 
-float long_average(float val, float avg){
-  if(avg == 0)
-    avg = val;
-  return (val + (avg * (LONG_AVG_CYCLES - 1))) / LONG_AVG_CYCLES;
-}
-
 float adc2volts(float adc){
   return adc * (1 / VOLTCOEFF);
 }
 
-float adc2amps(float adc){
-  return (adc - 512) * 0.1220703125;
-}
-
-void calcWatts(){
-  watts = volts * amps;
-}
-
-void calcWattHours(){
-  wattHours += (watts * ((time - wattHourTimer) / 1000.0) / 3600.0); // measure actual watt-hours
-  //wattHours +=  watts *     actual timeslice / in seconds / seconds per hour
-  // In the main loop, calcWattHours is being told to run every second.
-}
-
-void printWatts(){
-  if (DEBUG) Serial.print("w");
-  if (DEBUG) Serial.println(watts);
-}
-
-void printWattHours(){
-  if (DEBUG) Serial.print("w"); // tell the sign to print the following number
-  //  the sign will ignore printed decimal point and digits after it!
-  if (DEBUG) Serial.println(wattHours,1); // print just the number of watt-hours
-  //  if (DEBUG) Serial.println(wattHours*10,1); // for this you must put a decimal point onto the sign!
-}
-
 void printDisplay(){
-  if (DEBUG) Serial.print(realVolts);
-  if (DEBUG) Serial.print("v ");
-  if (DEBUG) Serial.print(volts);
-  if (DEBUG) Serial.print("fv ");
-  if (DEBUG && voltishFactor > 1.0) Serial.print(voltish);
-  if (DEBUG && voltishFactor > 1.0) Serial.print("voltish ");
-  // if (DEBUG) Serial.print(analogRead(VOLTPIN));
-  if (DEBUG) Serial.print("   relayState: ");
-  if (DEBUG) Serial.print(relayState);
-  if (DEBUG) Serial.print("  gameState: ");
-  if (DEBUG) Serial.print(gameState);
-  if (DEBUG) Serial.print("  efforts:");
-  if (DEBUG) Serial.print(ampsAdcAvg[0]);
-  if (DEBUG) Serial.print( winning_team ? '<' : '>' );
-  if (DEBUG) Serial.print(ampsAdcAvg[1]);
-  if (DEBUG) Serial.println();
+  Serial.print("+");
+  Serial.print(volts[0]);
+  Serial.print(",-");
+  Serial.print(volts[1]);
+  Serial.print("v ");
+  Serial.print("   relayState: ");
+  Serial.print(relayState);
+  Serial.println();
 }
