@@ -7,6 +7,7 @@
  * Thomas Spellman <thomas@thosmos.com>
  * Jake <jake@spaz.org>
  * Paul@rockthebike.com
+ * Mark P Sullivan <mark@rockthebike.com>
  *
  * Notes:
  * 1.6 - moved version to the top, started protocol of commenting every change in file and in Git commit
@@ -26,8 +27,9 @@
  * 2.4 - JS => rip out a bunch of stuff that we haven't used in a long time
  * 2.5 - JS => create branch sledge for ten-line sLEDgehammer pedalpower lightshow reactor
  * 2.6 - MPS => create branch solarliving for sLEDgehammer for Solar Living Center
+ * 2.7 - MPS => create branch shakeyourpeace_external_pedalometer for Split-Rail 24 volt pedalometer with side indicator for minusrail
 */
-char versionStr[] = "Single-Rail 12 volt sLEDgehammer for two teams at the Solar Living Center ver. 2.6 branch:solarliving";
+char versionStr[] = "Split-Rail 24 volt pedalometer with side indicator for minusrail ver. 2.7 branch:shakeyourpeace_external_pedalometer";
 
 // PINS
 // NEVER USE 13 FOR A RELAY:
