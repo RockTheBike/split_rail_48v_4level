@@ -191,7 +191,7 @@ void debugPattern() {
 }
 
 
-// a visually compact table of whether to light should be on/blinking vs off
+// a visually compact table of whether each led should be on/blinking vs off
 // positions:  big pedalometer: 2 red, 3 green, 1 white,  side lights: 1 red, 1 green
 int LEDS_FOR_LEVEL[][NUM_LEDS] = {
   #define LEVEL_PANIC 0
