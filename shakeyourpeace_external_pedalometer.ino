@@ -76,8 +76,6 @@ int ledState[NUM_LEDS] = {
 int BOTTOM_LED[NUM_RAILS] = { PLUS_BOTTOM, MINUS_BOTTOM };
 int TOP_LED[NUM_RAILS] = { PLUS_TOP, MINUS_TOP };
 
-int relayState = STATE_OFF;
-
 int blinkState = 0;
 int fastBlinkState = 0;
 
@@ -88,6 +86,7 @@ const float VOLT_POST_OFFSET[NUM_RAILS] = { 0, -5 };
 
 #define NUM_LEVELS 6
 const float levelVolt[NUM_LEVELS] = { 22.0, 23.5, 24.8, 25.7, 26.7, 27.2 };
+int levels[NUM_RAILS];
 
 int voltsAdc[NUM_RAILS];
 float voltsAdcAvg[NUM_RAILS];
@@ -169,41 +168,43 @@ void updateVoltRecord() {
 }
 
 
-int STATES[][NUM_LEDS] = {
-  // want visually compact table, so use integers rather than STATE_OFF etc
-  // positions:  big pedalometer: 2 red, 3 green, 1 white,  side lights: 1 red, 1 green
-  #define LEDS_OFF 0
-  { 0,0, 0,0,0, 0,  0, 0 },
-  #define LEDS_PANIC 1
+// a visually compact table of whether to light should be on/blinking vs off
+// positions:  big pedalometer: 2 red, 3 green, 1 white,  side lights: 1 red, 1 green
+int LEDS_FOR_LEVEL[][NUM_LEDS] = {
+  #define LEVEL_PANIC 0
   { 1,0, 0,0,0, 0,  1, 0 },
-  #define LEDS_LOW_SAFE 2
-  { 0,1, 0,0,0, 0,  0, 1 },
+  #define LEVEL_LOW_SAFE 1
+  { 1,0, 0,0,0, 0,  1, 0 },
+  { 1,1, 0,0,0, 0,  0, 1 },
   { 0,0, 1,0,0, 0,  0, 1 },
   { 0,0, 1,1,0, 0,  0, 1 },
-  #define LEDS_HIGH_SAFE 3
+  #define LEVEL_HIGH_SAFE 4
   { 0,0, 1,1,1, 0,  0, 1 },
-  #define LEDS_OVER 4
-  { 0,0, 1,1,1, 1,  1, 1 } };
+  #define LEVEL_OVER 5
+  { 1,1, 1,1,1, 1,  1, 1 } };
 
 void playGame() {
   for( int rail=0; rail<NUM_RAILS; rail++ ) {
-    int newLedStateTemplate = ledsState( volts[rail], rail );
+    levels[rail] = ledsState( volts[rail], rail );
     for( int i=BOTTOM_LED[rail]; i<=TOP_LED[rail]; i++ )
-      ledState[i] = STATES[newLedStateTemplate][i];
+      ledState[i] = LEDS_FOR_LEVEL[levels[rail]][i] ?
+        ( volts[rail]<levelVolt[0] || volts[rail]>levelVolt[NUM_LEVELS-1] ) ?
+          STATE_BLINK : STATE_ON  :
+        STATE_OFF;
   }
 }
 
 int ledsState( float v, int rail ) {
   if( v < levelVolt[0] )
-    // TODO flash when panicing
-    return LEDS_PANIC;
-  else if( v > levelVolt[NUM_LEVELS-1] )
-    return LEDS_PANIC;
-  else if( rail == 0 ) // plus rail
+    return LEVEL_PANIC;
+  if( v > levelVolt[NUM_LEVELS-1] )
+    return LEVEL_OVER;
+  if( rail == 0 )  // plus rail
     // TODO bring up the thermometer with PWM at top
-    return LEDS_LOW_SAFE;
-  else // minus rail
-    return LEDS_LOW_SAFE;
+    for( i=0; i<NUM_LEVELS; i++ )
+      if( v >= levelVolt[i] ) return LEVEL_LOW_SAFE+i;
+  else  // minus rail
+    return LEVEL_LOW_SAFE;
 }
 
 
@@ -298,7 +299,9 @@ void printDisplay(){
   Serial.print(",-");
   Serial.print(volts[1]);
   Serial.print("v ");
-  Serial.print("   relayState: ");
-  Serial.print(relayState);
+  Serial.print("   levels: ");
+  Serial.print(levels[0]);
+  Serial.print(",");
+  Serial.print(levels[1]);
   Serial.println();
 }
