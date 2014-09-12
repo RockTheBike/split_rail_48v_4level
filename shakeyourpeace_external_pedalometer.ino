@@ -188,8 +188,12 @@ void playGame() {
     levels[rail] = ledsState( volts[rail], rail );
     for( int i=BOTTOM_LED[rail]; i<=TOP_LED[rail]; i++ )
       ledState[i] = LEDS_FOR_LEVEL[levels[rail]][i] ?
+#ifdef ENABLE_BLINK
         ( volts[rail]<levelVolt[0] || volts[rail]>levelVolt[NUM_LEVELS-1] ) ?
           STATE_BLINK : STATE_ON  :
+#else
+        STATE_ON :
+#endif
         STATE_OFF;
   }
 }
@@ -303,5 +307,16 @@ void printDisplay(){
   Serial.print(levels[0]);
   Serial.print(",");
   Serial.print(levels[1]);
+  Serial.print("   Plus rail[");
+  for(i=0;i<5;i++) {
+    Serial.print(ledState[i]);
+    Serial.print(",");
+  }
+  Serial.print(ledState[6]);
+  Serial.print("]  Minus rail[");
+  Serial.print(ledState[7]);
+  Serial.print(",");
+  Serial.print(ledState[8]);
+  Serial.print("]");
   Serial.println();
 }
