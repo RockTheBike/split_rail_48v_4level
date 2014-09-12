@@ -70,9 +70,9 @@ int ledState[NUM_LEDS] = {
 // referencing in order:
 // plus bottom through plus top, then minus bottom through minus top
 #define PLUS_BOTTOM 0
-#define PLUS_TOP 4
-#define MINUS_BOTTOM 5
-#define MINUS_TOP 6
+#define PLUS_TOP 5
+#define MINUS_BOTTOM 6
+#define MINUS_TOP 7
 int BOTTOM_LED[NUM_RAILS] = { PLUS_BOTTOM, MINUS_BOTTOM };
 int TOP_LED[NUM_RAILS] = { PLUS_TOP, MINUS_TOP };
 
@@ -335,11 +335,11 @@ void printDisplay(){
     Serial.print(ledState[i]);
     Serial.print(",");
   }
-  Serial.print(ledState[6]);
+  Serial.print(ledState[5]);
   Serial.print("]  Minus rail[");
-  Serial.print(ledState[7]);
+  Serial.print(ledState[6]);
   Serial.print(",");
-  Serial.print(ledState[8]);
+  Serial.print(ledState[7]);
   Serial.print("]");
   Serial.println();
 }
