@@ -143,7 +143,12 @@ void loop() {
   if (time - vRTime > 1000)  // we do this once per second exactly
     updateVoltRecord();
 
+#define DEBUG_PATTERN
+#ifdef DEBUG_PATTERN
+  debugPattern();
+#else
   playGame();
+#endif
 
   doBlink();  // blink the LEDs
   doLeds();
@@ -165,6 +170,24 @@ void updateVoltRecord() {
   voltRecord[vRIndex] = voltish; // store the value. JAKE doing vRIndex++ didn't work. needed to be on two separate lines.
   vRIndex++;
   if (vRIndex >= VRSIZE) vRIndex = 0; // wrap the counter if necessary
+}
+
+
+void debugPattern() {
+  static int cursor;
+  static int onoff;
+  const static int CURSOR_POSITIONS[] = { 0,0, 1, 2, 3, 4, 5, 6, 7 };
+  delay(1000);
+  if( onoff ) {
+    onoff = 0;
+    for( i=0; i<NUM_LEDS; i++ )
+      ledState[i] = i==cursor ? STATE_ON : STATE_OFF;
+    cursor = (cursor+1) % (sizeof(CURSOR_POSITIONS)/sizeof(*CURSOR_POSITIONS));
+  } else {
+    onoff = 1;
+    for( i=0; i<NUM_LEDS; i++ )
+      ledState[i] = STATE_OFF;
+  }
 }
 
 
