@@ -226,12 +226,15 @@ int ledsState( float v, int rail ) {
     return LEVEL_PANIC;
   if( v > levelVolt[NUM_LEVELS-1] )
     return LEVEL_OVER;
+  // TODO fade in the top (or the next) segment of the mercury via PWM
   if( rail == 0 )  // plus rail
-    // TODO bring up the thermometer with PWM at top
     for( i=0; i<NUM_LEVELS; i++ )
       if( v >= levelVolt[i] ) return LEVEL_LOW_SAFE+i;
   else  // minus rail
-    return LEVEL_LOW_SAFE;
+    if( v >= levelVolt[2] )
+      return LEVEL_LOW_SAFE+1;
+    else
+      return LEVEL_LOW_SAFE;
 }
 
 
