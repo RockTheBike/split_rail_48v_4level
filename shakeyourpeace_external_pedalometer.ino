@@ -223,13 +223,18 @@ void playGame() {
 
 int ledsState( float v, int rail ) {
   if( v < levelVolt[0] )
+    // less than the lowest levelVolt => blinking LEVEL_PANIC
     return LEVEL_PANIC;
   if( v > levelVolt[NUM_LEVELS-1] )
+    // more than the highest levelVolt => blinking LEVEL_OVER
     return LEVEL_OVER;
   // TODO fade in the top (or the next) segment of the mercury via PWM
   if( rail == 0 )  // plus rail
-    for( i=0; i<NUM_LEVELS; i++ )
+    // (first) crossing levelVolt[i] => non-blinking LEVEL_LOW_SAFE+i
+    for( i=0; i<NUM_LEVELS; i++ ) {
       if( v >= levelVolt[i] ) return LEVEL_LOW_SAFE+i;
+      // since we got past LEVEL_OVER, we know v<=levelVolt[NUM_LEVELS-1]
+    }
   else  // minus rail
     if( v >= levelVolt[2] )
       return LEVEL_LOW_SAFE+1;
