@@ -28,6 +28,8 @@
  * 2.5 - JS => create branch sledge for ten-line sLEDgehammer pedalpower lightshow reactor
  * 2.6 - MPS => create branch solarliving for sLEDgehammer for Solar Living Center
  * 2.7 - MPS => create branch shakeyourpeace_external_pedalometer for Split-Rail 24 volt pedalometer with side indicator for minusrail
+
+ * fixed > logic harder
 */
 char versionStr[] = "Split-Rail 24 volt pedalometer with side indicator for minusrail ver. 2.7 branch:shakeyourpeace_external_pedalometer";
 
@@ -231,8 +233,8 @@ int ledsState( float v, int rail ) {
   if( rail == 0 )  // plus rail
     // (first) crossing levelVolt[i] => non-blinking LEVEL_LOW_SAFE+i
     for( i=0; i<NUM_LEVELS; i++ ) {
-      if( v >= levelVolt[i] ) return LEVEL_LOW_SAFE+i;
-      // since we got past LEVEL_OVER, we know v<=levelVolt[NUM_LEVELS-1]
+      if( levelVolt[i] > v ) return LEVEL_LOW_SAFE+i;
+      // since we got past LEVEL_OVER, we know levelVolt[NUM_LEVELS-1] >= v
     }
   else  // minus rail
     if( v >= levelVolt[2] )
