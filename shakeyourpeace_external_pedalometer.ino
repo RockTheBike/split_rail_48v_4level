@@ -30,6 +30,7 @@
  * 2.7 - MPS => create branch shakeyourpeace_external_pedalometer for Split-Rail 24 volt pedalometer with side indicator for minusrail
 
  * fixed > logic harder
+ * Keep red LEDs off during over-voltage
 */
 char versionStr[] = "Split-Rail 24 volt pedalometer with side indicator for minusrail ver. 2.7 branch:shakeyourpeace_external_pedalometer";
 
@@ -205,7 +206,7 @@ int LEDS_FOR_LEVEL[][NUM_LEDS] = {
   #define LEVEL_HIGH_SAFE 4
   { 0,0, 1,1,1, 0,  0, 1 },
   #define LEVEL_OVER 5
-  { 1,1, 1,1,1, 1,  1, 1 } };
+  { 0,0, 1,1,1, 1,  1, 1 } };
 
 void playGame() {
   for( int rail=0; rail<NUM_RAILS; rail++ ) {
