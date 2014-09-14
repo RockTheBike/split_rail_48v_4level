@@ -234,14 +234,14 @@ int ledsState( float v, int rail ) {
   if( rail == 0 )  // plus rail
     // (first) crossing levelVolt[i] => non-blinking LEVEL_LOW_SAFE+i
     for( i=0; i<NUM_LEVELS; i++ ) {
-      if( levelVolt[i] > v ) return LEVEL_LOW_SAFE+i;
+      if( levelVolt[i] > v ) return LEVEL_LOW_SAFE+i-1;
       // since we got past LEVEL_OVER, we know levelVolt[NUM_LEVELS-1] >= v
     }
   else  // minus rail
-    if( v >= levelVolt[2] )
-      return LEVEL_LOW_SAFE+1;
-    else
+    if( levelVolt[1] > v )
       return LEVEL_LOW_SAFE;
+    else
+      return LEVEL_LOW_SAFE+1;
 }
 
 
