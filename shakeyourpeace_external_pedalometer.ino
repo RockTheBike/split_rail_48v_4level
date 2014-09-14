@@ -203,9 +203,9 @@ int LEDS_FOR_LEVEL[][NUM_LEDS] = {
   { 1,1, 0,0,0, 0,  0, 1 },
   { 0,0, 1,0,0, 0,  0, 1 },
   { 0,0, 1,1,0, 0,  0, 1 },
-  #define LEVEL_HIGH_SAFE 4
+  #define LEVEL_HIGH_SAFE 5
   { 0,0, 1,1,1, 0,  0, 1 },
-  #define LEVEL_OVER 5
+  #define LEVEL_OVER 6
   { 0,0, 1,1,1, 1,  1, 1 } };
 
 void playGame() {
