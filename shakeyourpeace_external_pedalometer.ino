@@ -30,7 +30,7 @@
  * 2.7 - MPS => create branch shakeyourpeace_external_pedalometer for Split-Rail 24 volt pedalometer with side indicator for minusrail
 
  * fixed > logic harder
- * Keep red LEDs off during over-voltage
+ * turned off red LEDs when white over-voltage light turns on
 */
 char versionStr[] = "Split-Rail 24 volt pedalometer with side indicator for minusrail ver. 2.7 branch:shakeyourpeace_external_pedalometer";
 
@@ -41,7 +41,7 @@ const int VOLTPINS[NUM_RAILS] = { VOLTPIN, MINUSVOLTPIN };
 #define NUM_LEDS 8 // Number of LED outputs
 const int ledPins[NUM_LEDS] = {
   // plus pedalometer
-  3,4, 5,6,7, 9,
+  6,7,9,5,3,4,
   // minus degenerate-pedalometer / side-lights
   10, 11 };
 
@@ -301,6 +301,23 @@ void doLeds(){
       analogState[i] = 0;
     }
   }
+/*
+if ((float)volts[1] < -16){
+  digitalWrite(10, LOW);
+digitalWrite(11, HIGH);
+Serial.print("Minus Green");
+Serial.println(volts[1]);
+} else if ((float)volts[1] >= -16){
+digitalWrite(11, HIGH);
+digitalWrite(10, LOW);
+Serial.print("Minus Red");
+Serial.println(volts[1]);
+}*/
+
+digitalWrite(10, volts[1]<16);
+digitalWrite(11, volts[1]>16);
+
+
 
 } // END doLeds()
 
