@@ -87,8 +87,26 @@ const int VOLT_PRE_OFFSET[NUM_RAILS] = { 0, 1023 };
 const int SCALE[NUM_RAILS] = { 1, -1 };
 const float VOLT_POST_OFFSET[NUM_RAILS] = { 0, -5 };
 
-#define NUM_LEVELS 6
-const float levelVolt[NUM_LEVELS] = { 22.0, 23.5, 24.8, 25.7, 26.7, 27.2 };
+/* The NUM_THRESHOLDS thresholds in levelVolts separate all possible voltages
+ * into NUM_THRESHOLDS+1 ranges.  LEDS_FOR_LEVEL describes the state of the
+ * pedalometer for each range.  But we shoved both rails in there and deal
+ * with the LEDs for each rail separately.
+ */
+#define NUM_THRESHOLDS 7
+const float levelVolts[NUM_RAILS][NUM_THRESHOLDS] = {
+  { 22.0, 23.5, 24.8, 25.7, 26.7, 27.0, 27.2 },
+  { 14.0, 16.0, 23.0, 23.0, 23.0, 23.0, 23.0 } };
+// a visually compact table of whether each led should be on/blinking vs off
+// positions:  big pedalometer: 2 red, 3 green, 1 white,  side lights: 1 red, 1 green
+const int LEDS_FOR_LEVEL[NUM_THRESHOLDS+1][NUM_LEDS] = {
+  { STATE_BLINK,STATE_OFF,   STATE_OFF,  STATE_OFF,  STATE_OFF,   STATE_OFF,          STATE_BLINK, STATE_OFF   },
+  { STATE_ON,   STATE_OFF,   STATE_OFF,  STATE_OFF,  STATE_OFF,   STATE_OFF,          STATE_ON,    STATE_OFF   },
+  { STATE_ON,   STATE_ON,    STATE_OFF,  STATE_OFF,  STATE_OFF,   STATE_OFF,          STATE_OFF,   STATE_ON    },
+  { STATE_OFF,  STATE_OFF,   STATE_ON,   STATE_OFF,  STATE_OFF,   STATE_OFF,          STATE_OFF,   STATE_ON    },
+  { STATE_OFF,  STATE_OFF,   STATE_ON,   STATE_ON,   STATE_OFF,   STATE_OFF,          STATE_OFF,   STATE_ON    },
+  { STATE_OFF,  STATE_OFF,   STATE_ON,   STATE_ON,   STATE_ON,    STATE_OFF,          STATE_OFF,   STATE_ON    },
+  { STATE_OFF,  STATE_OFF,   STATE_ON,   STATE_ON,   STATE_ON,    STATE_ON,           STATE_OFF,   STATE_BLINK },
+  { STATE_OFF,  STATE_OFF,   STATE_ON,   STATE_ON,   STATE_ON,    STATE_BLINK,        STATE_OFF,   STATE_BLINK } };
 int levels[NUM_RAILS];
 
 int voltsAdc[NUM_RAILS];
@@ -193,55 +211,19 @@ void debugPattern() {
 }
 
 
-// a visually compact table of whether each led should be on/blinking vs off
-// positions:  big pedalometer: 2 red, 3 green, 1 white,  side lights: 1 red, 1 green
-int LEDS_FOR_LEVEL[][NUM_LEDS] = {
-  #define LEVEL_PANIC 0
-  { 1,0, 0,0,0, 0,  1, 0 },
-  #define LEVEL_LOW_SAFE 1
-  { 1,0, 0,0,0, 0,  1, 0 },
-  { 1,1, 0,0,0, 0,  0, 1 },
-  { 0,0, 1,0,0, 0,  0, 1 },
-  { 0,0, 1,1,0, 0,  0, 1 },
-  #define LEVEL_HIGH_SAFE 5
-  { 0,0, 1,1,1, 0,  0, 1 },
-  #define LEVEL_OVER 6
-  { 0,0, 1,1,1, 1,  1, 1 } };
-
 void playGame() {
   for( int rail=0; rail<NUM_RAILS; rail++ ) {
-    levels[rail] = ledsState( volts[rail], rail );
+    levels[rail] = level( volts[rail], rail );
     for( int i=BOTTOM_LED[rail]; i<=TOP_LED[rail]; i++ )
-      ledState[i] = LEDS_FOR_LEVEL[levels[rail]][i] ?
-#ifndef DISABLE_BLINK
-        ( volts[rail]<levelVolt[0] || volts[rail]>levelVolt[NUM_LEVELS-1] ) ?
-          STATE_BLINK : STATE_ON  :
-#else
-        STATE_ON :
-#endif
-        STATE_OFF;
+      ledState[i] = LEDS_FOR_LEVEL[levels[rail]][i];
   }
 }
 
-int ledsState( float v, int rail ) {
-  if( v < levelVolt[0] )
-    // less than the lowest levelVolt => blinking LEVEL_PANIC
-    return LEVEL_PANIC;
-  if( v > levelVolt[NUM_LEVELS-1] )
-    // more than the highest levelVolt => blinking LEVEL_OVER
-    return LEVEL_OVER;
+int level( float v, int rail ) {
   // TODO fade in the top (or the next) segment of the mercury via PWM
-  if( rail == 0 )  // plus rail
-    // (first) crossing levelVolt[i] => non-blinking LEVEL_LOW_SAFE+i
-    for( i=0; i<NUM_LEVELS; i++ ) {
-      if( levelVolt[i] > v ) return LEVEL_LOW_SAFE+i-1;
-      // since we got past LEVEL_OVER, we know levelVolt[NUM_LEVELS-1] >= v
-    }
-  else  // minus rail
-    if( levelVolt[1] > v )
-      return LEVEL_LOW_SAFE;
-    else
-      return LEVEL_LOW_SAFE+1;
+  for( i=0; i<NUM_THRESHOLDS; i++ )
+    if( v < levelVolts[rail][i] ) return i;
+  return NUM_THRESHOLDS;
 }
 
 
