@@ -213,7 +213,7 @@ void playGame() {
     levels[rail] = ledsState( volts[rail], rail );
     for( int i=BOTTOM_LED[rail]; i<=TOP_LED[rail]; i++ )
       ledState[i] = LEDS_FOR_LEVEL[levels[rail]][i] ?
-#ifdef DISABLE_BLINK
+#ifndef DISABLE_BLINK
         ( volts[rail]<levelVolt[0] || volts[rail]>levelVolt[NUM_LEVELS-1] ) ?
           STATE_BLINK : STATE_ON  :
 #else
