@@ -41,7 +41,7 @@ const int VOLTPINS[NUM_RAILS] = { VOLTPIN, MINUSVOLTPIN };
 #define NUM_LEDS 8 // Number of LED outputs
 const int ledPins[NUM_LEDS] = {
   // plus pedalometer
-  3,4, 5,6,7, 9,
+  6,7, 9,5,3, 4,
   // minus degenerate-pedalometer / side-lights
   10, 11 };
 
