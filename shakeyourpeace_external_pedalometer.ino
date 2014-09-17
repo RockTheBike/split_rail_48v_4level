@@ -183,7 +183,7 @@ void debugPattern() {
   if( onoff ) {
     onoff = 0;
     for( i=0; i<NUM_LEDS; i++ )
-      ledState[i] = i==cursor ? STATE_ON : STATE_OFF;
+      ledState[i] = i==CURSOR_POSITIONS[cursor] ? STATE_ON : STATE_OFF;
     cursor = (cursor+1) % (sizeof(CURSOR_POSITIONS)/sizeof(*CURSOR_POSITIONS));
   } else {
     onoff = 1;
