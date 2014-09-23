@@ -35,6 +35,7 @@
 char versionStr[] = "Split-Rail 24 volt pedalometer with side indicator for minusrail ver. 2.7 branch:shakeyourpeace_external_pedalometer";
 
 #define NUM_RAILS 2
+#define MAX_LEDS_PER_RAIL 6
 #define VOLTPIN A0 // Voltage Sensor Pin
 #define MINUSVOLTPIN A1 // Voltage Sensor Input for arbduino v2
 const int VOLTPINS[NUM_RAILS] = { VOLTPIN, MINUSVOLTPIN };
@@ -68,16 +69,11 @@ int analogState[NUM_LEDS] = {0}; // stores the last analogWrite() value for each
 #define STATE_ON 2
 
 // on/off/blink/fastblink state of each led
-int ledState[NUM_LEDS] = {
-  STATE_OFF};
+int ledState[NUM_LEDS];
 // referencing in order:
 // plus bottom through plus top, then minus bottom through minus top
-#define PLUS_BOTTOM 0
-#define PLUS_TOP 5
-#define MINUS_BOTTOM 6
-#define MINUS_TOP 7
-int BOTTOM_LED[NUM_RAILS] = { PLUS_BOTTOM, MINUS_BOTTOM };
-int TOP_LED[NUM_RAILS] = { PLUS_TOP, MINUS_TOP };
+int BOTTOM_LED[NUM_RAILS] = { 0, 6 };
+int TOP_LED[NUM_RAILS] = { 5, 7 };
 
 int blinkState = 0;
 int fastBlinkState = 0;
@@ -87,30 +83,37 @@ const int VOLT_PRE_OFFSET[NUM_RAILS] = { 0, 1023 };
 const int SCALE[NUM_RAILS] = { 1, -1 };
 const float VOLT_POST_OFFSET[NUM_RAILS] = { 0, -5 };
 
-/* The NUM_THRESHOLDS thresholds in levelVolts separate all possible voltages
- * into NUM_THRESHOLDS+1 ranges.  LEDS_FOR_LEVEL describes the state of the
- * pedalometer for each range.  But we shoved both rails in there and deal
- * with the LEDs for each rail separately.
- */
-#define NUM_THRESHOLDS 7
-const float levelVolts[NUM_RAILS][NUM_THRESHOLDS] = {
-  { 22.0, 23.5, 24.8, 25.7, 26.7, 27.0, 27.2 },
-  { 14.0, 16.0, 23.0, 23.0, 23.0, 23.0, 23.0 } };
-// a visually compact table of whether each led should be on/blinking vs off
-// positions:  big pedalometer: 2 red, 3 green, 1 white,  side lights: 1 red, 1 green
-const int LEDS_FOR_LEVEL[NUM_THRESHOLDS+1][NUM_LEDS] = {
-  { STATE_BLINK,STATE_OFF,   STATE_OFF,  STATE_OFF,  STATE_OFF,   STATE_OFF,          STATE_BLINK, STATE_OFF   },
-  { STATE_ON,   STATE_OFF,   STATE_OFF,  STATE_OFF,  STATE_OFF,   STATE_OFF,          STATE_ON,    STATE_OFF   },
-  { STATE_ON,   STATE_ON,    STATE_OFF,  STATE_OFF,  STATE_OFF,   STATE_OFF,          STATE_OFF,   STATE_ON    },
-  { STATE_OFF,  STATE_OFF,   STATE_ON,   STATE_OFF,  STATE_OFF,   STATE_OFF,          STATE_OFF,   STATE_ON    },
-  { STATE_OFF,  STATE_OFF,   STATE_ON,   STATE_ON,   STATE_OFF,   STATE_OFF,          STATE_OFF,   STATE_ON    },
-  { STATE_OFF,  STATE_OFF,   STATE_ON,   STATE_ON,   STATE_ON,    STATE_OFF,          STATE_OFF,   STATE_ON    },
-  { STATE_OFF,  STATE_OFF,   STATE_ON,   STATE_ON,   STATE_ON,    STATE_ON,           STATE_OFF,   STATE_BLINK },
-  { STATE_OFF,  STATE_OFF,   STATE_ON,   STATE_ON,   STATE_ON,    STATE_BLINK,        STATE_OFF,   STATE_BLINK } };
 int levels[NUM_RAILS];
+struct level {
+  float threshold;
+  int led_states[MAX_LEDS_PER_RAIL];
+};
+struct level LEVELS_FOR_PLUS_RAIL[] = {
+  // threshold,  leds:red    red         green     green     green       white
+  { -INFINITY, { STATE_BLINK,STATE_OFF,  STATE_OFF,STATE_OFF,STATE_OFF,  STATE_OFF } },
+  { 22.0,      { STATE_ON,   STATE_OFF,  STATE_OFF,STATE_OFF,STATE_OFF,  STATE_OFF } },
+  { 23.5,      { STATE_ON,   STATE_ON,   STATE_OFF,STATE_OFF,STATE_OFF,  STATE_OFF } },
+  { 24.8,      { STATE_OFF,  STATE_OFF,  STATE_ON, STATE_OFF,STATE_OFF,  STATE_OFF } },
+  { 25.7,      { STATE_OFF,  STATE_OFF,  STATE_ON, STATE_ON, STATE_OFF,  STATE_OFF } },
+  { 26.7,      { STATE_OFF,  STATE_OFF,  STATE_ON, STATE_ON, STATE_ON,   STATE_OFF } },
+  { 27.0,      { STATE_OFF,  STATE_OFF,  STATE_ON, STATE_ON, STATE_ON,   STATE_ON }  },
+  { 27.2,      { STATE_OFF,  STATE_OFF,  STATE_ON, STATE_ON, STATE_ON,   STATE_BLINK } } };
+struct level LEVELS_FOR_MINUS_RAIL[] = {
+  // threshold,  leds:red      green
+  { -INFINITY, { STATE_BLINK,  STATE_OFF   } },
+  { 14.0,      { STATE_ON,     STATE_OFF   } },
+  { 16.0,      { STATE_OFF,    STATE_ON    } },
+  { 23.0,      { STATE_OFF,    STATE_BLINK } } };
+struct level* LEVELS_FOR_RAILS[NUM_RAILS] = {
+  LEVELS_FOR_PLUS_RAIL,
+  LEVELS_FOR_MINUS_RAIL };
+int NUM_LEVELS_FOR_RAILS[NUM_RAILS] = {
+  sizeof(LEVELS_FOR_PLUS_RAIL)/sizeof(*LEVELS_FOR_PLUS_RAIL),
+  sizeof(LEVELS_FOR_MINUS_RAIL)/sizeof(*LEVELS_FOR_MINUS_RAIL) };
 
 int voltsAdc[NUM_RAILS];
 float voltsAdcAvg[NUM_RAILS];
+// volts[0] holds plus rail, volts[1] holds minus rail but should be positive
 float volts[NUM_RAILS];
 
 #define VRSIZE 40 // must be greater than LOSESECONDS but not big enough to use up too much RAM
@@ -213,17 +216,18 @@ void debugPattern() {
 
 void playGame() {
   for( int rail=0; rail<NUM_RAILS; rail++ ) {
-    levels[rail] = level( volts[rail], rail );
-    for( int i=BOTTOM_LED[rail]; i<=TOP_LED[rail]; i++ )
-      ledState[i] = LEDS_FOR_LEVEL[levels[rail]][i];
+    int level = levels[rail] = matching_level(
+      volts[rail], LEVELS_FOR_RAILS[rail], NUM_LEVELS_FOR_RAILS[rail] );
+    for( int i=0,j=BOTTOM_LED[rail]; j<=TOP_LED[rail]; j++,i++ )
+      ledState[j] = LEVELS_FOR_RAILS[rail][level].led_states[i];
   }
 }
 
-int level( float v, int rail ) {
+int matching_level( float v, struct level levels[], int num_levels ) {
   // TODO fade in the top (or the next) segment of the mercury via PWM
-  for( i=0; i<NUM_THRESHOLDS; i++ )
-    if( v < levelVolts[rail][i] ) return i;
-  return NUM_THRESHOLDS;
+  for( i=num_levels-1; i; i-- )
+    if( levels[i].threshold < v ) return i;
+  return 0;
 }
 
 

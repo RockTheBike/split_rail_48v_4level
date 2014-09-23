@@ -1,6 +1,7 @@
 #include <stdio.h>
+#include <math.h>
 
-int level( float v, struct leds_for_levels* leds_for_levels );
+int matching_level( float v, struct level levels[], int num_levels );
 void playGame();
 int main( int arcg, char** argv );
 int eval_test_case( struct test_case* test_case );
@@ -9,7 +10,6 @@ int eval_test_case( struct test_case* test_case );
 // real code below
 
 #define NUM_RAILS 2
-#define MAX_LEVELS 8
 #define MAX_LEDS_PER_RAIL 6
 #define NUM_LEDS 8 // Number of LED outputs
 
@@ -19,44 +19,39 @@ int eval_test_case( struct test_case* test_case );
 #define STATE_ON 2
 
 // on/off/blink/fastblink state of each led
-int ledState[NUM_LEDS] = {
-  STATE_OFF};
+int ledState[NUM_LEDS];
 // referencing in order:
 // plus bottom through plus top, then minus bottom through minus top
-#define PLUS_BOTTOM 0
-#define PLUS_TOP 5
-#define MINUS_BOTTOM 6
-#define MINUS_TOP 7
-int BOTTOM_LED[NUM_RAILS] = { PLUS_BOTTOM, MINUS_BOTTOM };
-int TOP_LED[NUM_RAILS] = { PLUS_TOP, MINUS_TOP };
-struct leds_for_levels {
-  const int num_thresholds;
-  const float thresholds[MAX_LEVELS-1];
-  // a record has one more level than it has threshold
-  const int leds_for_level[MAX_LEVELS][MAX_LEDS_PER_RAIL];
-} LEDS_FOR_LEVELS[NUM_RAILS] = {
-  {  // plus rail
-    7,
-    { 22.0, 23.5, 24.8, 25.7, 26.7, 27.0, 27.2 },
-    {  // positions:  2 red, 3 green, 1 white
-      { STATE_BLINK,STATE_OFF,  STATE_OFF,STATE_OFF,STATE_OFF,  STATE_OFF },
-      { STATE_ON,   STATE_OFF,  STATE_OFF,STATE_OFF,STATE_OFF,  STATE_OFF },
-      { STATE_ON,   STATE_ON,   STATE_OFF,STATE_OFF,STATE_OFF,  STATE_OFF },
-      { STATE_OFF,  STATE_OFF,  STATE_ON, STATE_OFF,STATE_OFF,  STATE_OFF },
-      { STATE_OFF,  STATE_OFF,  STATE_ON, STATE_ON, STATE_OFF,  STATE_OFF },
-      { STATE_OFF,  STATE_OFF,  STATE_ON, STATE_ON, STATE_ON,   STATE_OFF },
-      { STATE_OFF,  STATE_OFF,  STATE_ON, STATE_ON, STATE_ON,   STATE_ON },
-      { STATE_OFF,  STATE_OFF,  STATE_ON, STATE_ON, STATE_ON,   STATE_BLINK } }
-  }, {  // minus rail
-    3,
-    { 14.0, 16.0, 23.0 },
-    {  // positions:  1 red, 1 green
-      { STATE_BLINK,  STATE_OFF   },
-      { STATE_ON,     STATE_OFF   },
-      { STATE_OFF,    STATE_ON    },
-      { STATE_OFF,    STATE_BLINK } } } };
+int BOTTOM_LED[NUM_RAILS] = { 0, 6 };
+int TOP_LED[NUM_RAILS] = { 5, 7 };
 
 int levels[NUM_RAILS];
+struct level {
+  float threshold;
+  int led_states[MAX_LEDS_PER_RAIL];
+};
+struct level LEVELS_FOR_PLUS_RAIL[] = {
+  // threshold,  leds:red    red         green     green     green       white
+  { -INFINITY, { STATE_BLINK,STATE_OFF,  STATE_OFF,STATE_OFF,STATE_OFF,  STATE_OFF } },
+  { 22.0,      { STATE_ON,   STATE_OFF,  STATE_OFF,STATE_OFF,STATE_OFF,  STATE_OFF } },
+  { 23.5,      { STATE_ON,   STATE_ON,   STATE_OFF,STATE_OFF,STATE_OFF,  STATE_OFF } },
+  { 24.8,      { STATE_OFF,  STATE_OFF,  STATE_ON, STATE_OFF,STATE_OFF,  STATE_OFF } },
+  { 25.7,      { STATE_OFF,  STATE_OFF,  STATE_ON, STATE_ON, STATE_OFF,  STATE_OFF } },
+  { 26.7,      { STATE_OFF,  STATE_OFF,  STATE_ON, STATE_ON, STATE_ON,   STATE_OFF } },
+  { 27.0,      { STATE_OFF,  STATE_OFF,  STATE_ON, STATE_ON, STATE_ON,   STATE_ON }  },
+  { 27.2,      { STATE_OFF,  STATE_OFF,  STATE_ON, STATE_ON, STATE_ON,   STATE_BLINK } } };
+struct level LEVELS_FOR_MINUS_RAIL[] = {
+  // threshold,  leds:red      green
+  { -INFINITY, { STATE_BLINK,  STATE_OFF   } },
+  { 14.0,      { STATE_ON,     STATE_OFF   } },
+  { 16.0,      { STATE_OFF,    STATE_ON    } },
+  { 23.0,      { STATE_OFF,    STATE_BLINK } } };
+struct level* LEVELS_FOR_RAILS[NUM_RAILS] = {
+  LEVELS_FOR_PLUS_RAIL,
+  LEVELS_FOR_MINUS_RAIL };
+int NUM_LEVELS_FOR_RAILS[NUM_RAILS] = {
+  sizeof(LEVELS_FOR_PLUS_RAIL)/sizeof(*LEVELS_FOR_PLUS_RAIL),
+  sizeof(LEVELS_FOR_MINUS_RAIL)/sizeof(*LEVELS_FOR_MINUS_RAIL) };
 
 // volts[0] holds plus rail, volts[1] holds minus rail but should be positive
 float volts[NUM_RAILS];
@@ -64,17 +59,18 @@ int i = 0;
 
 void playGame() {
   for( int rail=0; rail<NUM_RAILS; rail++ ) {
-    levels[rail] = level( volts[rail], &LEDS_FOR_LEVELS[rail] );
+    int level = levels[rail] = matching_level(
+      volts[rail], LEVELS_FOR_RAILS[rail], NUM_LEVELS_FOR_RAILS[rail] );
     for( int i=0,j=BOTTOM_LED[rail]; j<=TOP_LED[rail]; j++,i++ )
-      ledState[j] = LEDS_FOR_LEVELS[rail].leds_for_level[levels[rail]][i];
+      ledState[j] = LEVELS_FOR_RAILS[rail][level].led_states[i];
   }
 }
 
-int level( float v, struct leds_for_levels* leds_for_levels ) {
+int matching_level( float v, struct level levels[], int num_levels ) {
   // TODO fade in the top (or the next) segment of the mercury via PWM
-  for( i=0; i<leds_for_levels->num_thresholds; i++ )
-    if( v < leds_for_levels->thresholds[i] ) return i;
-  return i;
+  for( i=num_levels-1; i; i-- )
+    if( levels[i].threshold < v ) return i;
+  return 0;
 }
 
 
@@ -90,8 +86,8 @@ struct test_case {
 struct test_case test_cases[] = {
   // raise both voltages together
   { 21.0, 13.5, { 1, 0,0,0, 0,0,  1, 0 } },
-  { 23.0, 15.0, { 2, 0,0,0, 0,0,  2, 0 } },
-  { 24.5, 20.0, { 2, 2,0,0, 0,0,  0, 2 } },
+  { 23.0, 15.0, { 2, 0,0,0, 0,0,  2, 0 } },  // fails 
+  { 24.5, 20.0, { 2, 2,0,0, 0,0,  0, 2 } },  // causes segv at 64 
   { 25.5, 20.0, { 0, 0,2,0, 0,0,  0, 2 } },
   { 26.5, 20.0, { 0, 0,2,2, 0,0,  0, 2 } },
   { 26.9, 20.0, { 0, 0,2,2, 2,0,  0, 2 } },
