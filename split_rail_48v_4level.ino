@@ -29,8 +29,8 @@
 char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility Box ver. 2.6 branch:1b10usb";
 
 #include <Adafruit_NeoPixel.h>
-#define LEDSTRIPPIN 7 // what pin the data input to the LED strip is connected to
-#define NUMLEDS 6 // how many LEDs on the strip
+#define LEDSTRIPPIN 13 // what pin the data input to the LED strip is connected to
+#define NUM_LEDS 13 // how many LEDs on the strip
 Adafruit_NeoPixel ledStrip = Adafruit_NeoPixel(NUM_LEDS, LEDSTRIPPIN, NEO_GRB + NEO_KHZ800);
 #define ledBrightness 127 // brightness of addressible LEDs (0 to 255)
 
@@ -40,9 +40,9 @@ Adafruit_NeoPixel ledStrip = Adafruit_NeoPixel(NUM_LEDS, LEDSTRIPPIN, NEO_GRB + 
 #define AMPSPIN A3 // Current Sensor Pin
 
 // levels at which each LED turns green (normally all red unless below first voltage)
-const float ledLevels[8] = {
-  // 7.0, 11.0, 15.59, 19.08, 22.05, 24.64, 27}; // sixths of energy stored
-  7.0, 10.20, 14.42, 17.66, 20.40, 22.80, 24.98, 27.0}; // sevenths of energy stored
+const float ledLevels[NUM_LEDS+1] = {
+  //7.0, 10.20, 14.42, 17.66, 20.40, 22.80, 24.98, 27.0}; // sevenths of energy stored
+  6.97,9.86,12.07,13.94,15.59,17.08,18.44,19.72,20.91,22.05,23.12,24.15,25.14,26.08};//16ths of energy
 //red  1grn   2grn   3grn   4grn   5grn   6grn   white
 
 #define AVG_CYCLES 50 // average measured values over this many samples
