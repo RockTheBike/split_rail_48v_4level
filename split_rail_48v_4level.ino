@@ -114,7 +114,7 @@ void setup() {
   green = ledStrip.Color(0,ledBrightness,0);
   blue = ledStrip.Color(0,0,ledBrightness);
   white = ledStrip.Color(ledBrightness,ledBrightness,ledBrightness);
-  dark = ledStrip.Color(11,11,11);
+  dark = ledStrip.Color(0,0,0);
 
   timeDisplay = millis();
   // setPwmFrequency(3,1); // this sets the frequency of PWM on pins 3 and 11 to 31,250 Hz
@@ -249,10 +249,10 @@ void doBlink(){
 
 void doLeds(){
 
-  for(i = 0; i < 8; i++) { // go through all voltages in ledLevels[]
+  for(i = 0; i < NUM_LEDS; i++) { // go through all voltages in ledLevels[]
     if (volts < ledLevels[0]) { // if voltage below minimum
       ledStrip.setPixelColor(i,dark);  // all lights out
-    } else if (volts > ledLevels[7]) { // if voltage at highest level
+    } else if (volts == ledLevels[NUM_LEDS-1]) { // if voltage at highest level
       if (blinkState) { // make the lights blink
         ledStrip.setPixelColor(i,white);  // blinking white
       } else {
