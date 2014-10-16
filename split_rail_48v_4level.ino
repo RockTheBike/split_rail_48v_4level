@@ -31,7 +31,7 @@ char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility B
 #include <Adafruit_NeoPixel.h>
 #define LEDSTRIPPIN 7 // what pin the data input to the LED strip is connected to
 #define NUMLEDS 6 // how many LEDs on the strip
-Adafruit_NeoPixel ledStrip = Adafruit_NeoPixel(NUMLEDS, LEDSTRIPPIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel ledStrip = Adafruit_NeoPixel(NUM_LEDS, LEDSTRIPPIN, NEO_GRB + NEO_KHZ800);
 #define ledBrightness 127 // brightness of addressible LEDs (0 to 255)
 
 // PINS
@@ -261,13 +261,13 @@ void doLeds(){
     } else { // voltage somewhere in between
       ledStrip.setPixelColor(i,red);  // otherwise red
       if (volts > ledLevels[i+1]) { // but if enough voltage
-        ledStrip.setPixelColor(i,green);  // gas gauge effect
+        ledStrip.setPixelColor(i,blue);  // gas gauge effect
       }
     }
   }
 
   if (dangerState){ // in danger fastblink white
-    for(i = 0; i < NUMLEDS; i++) {
+    for(i = 0; i < NUM_LEDS; i++) {
       if (fastBlinkState) { // make the lights blink FAST
         ledStrip.setPixelColor(i,white);  // blinking white
       } else {
