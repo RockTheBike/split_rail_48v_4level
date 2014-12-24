@@ -35,14 +35,14 @@ char versionStr[] = "Single-Rail 12 volt sLEDgehammer for two teams at the Solar
 // see http://arduino.cc/en/Hacking/Bootloader
 #define RELAYPIN 12 // relay cutoff output pin
 #define HALOGENPIN 13
-#define NUM_TEAMS 2
+#define NUM_TEAMS 2  // ie blue (0) and green (1)
 #define NUM_COLUMNS 5
 
 // indexing into ledPins
 #define LED_FOR_SINK 10  // ie halogen energy sink
 const int LED_FOR_TEAM_COLUMN[NUM_TEAMS][NUM_COLUMNS] = {
-  { 0, 1, 2, 3, 4 },
-  { 5, 6, 7, 8, 9 } };
+  { 0, 1, 2, 3, 4 },  // blue team
+  { 5, 6, 7, 8, 9 } };  // green team
 
 #define VOLTPIN A0 // Voltage Sensor Pin
 const int AMPSPINS[NUM_TEAMS] = { A3, A2 };  // Current Sensor Pins
