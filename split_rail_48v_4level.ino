@@ -41,8 +41,7 @@ Adafruit_NeoPixel ledStrip = Adafruit_NeoPixel(NUM_LEDS, LEDSTRIPPIN, NEO_GRB + 
 
 // levels at which each LED turns green (normally all red unless below first voltage)
 const float ledLevels[NUM_LEDS+1] = {
-  //7.0, 10.20, 14.42, 17.66, 20.40, 22.80, 24.98, 27.0}; // sevenths of energy stored
-  6.97,9.86,12.07,13.94,15.59,17.08,18.44,19.72,20.91,22.05,23.12,24.15,25.14,26.08};//16ths of energy
+  12.00000,13.84615,15.69231,17.53846,19.38462,21.23077,23.07692,24.92308,26.76923,28.61538,30.46154,32.30769,34.15385,36.00000 };
 //red  1grn   2grn   3grn   4grn   5grn   6grn   white
 
 #define AVG_CYCLES 50 // average measured values over this many samples
@@ -56,11 +55,11 @@ const float ledLevels[NUM_LEDS+1] = {
 #define STATE_BLINKFAST 3
 #define STATE_ON 2
 
-#define MAX_VOLTS 27.0  // when to open the safety relay
-#define RECOVERY_VOLTS 24.0  // when to close the safety relay
+#define MAX_VOLTS 37.8  // when to open the safety relay
+#define RECOVERY_VOLTS 37.0  // when to close the safety relay
 int relayState = STATE_OFF;
 
-#define DANGER_VOLTS 27.5  // when to fast-flash white (slow-flash above last ledLevels)
+#define DANGER_VOLTS 38.0  // when to fast-flash white (slow-flash above last ledLevels)
 int dangerState = STATE_OFF;
 
 int blinkState = 0;
