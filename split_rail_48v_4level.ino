@@ -56,11 +56,11 @@ const float ledLevels[NUM_LEDS+1] = {
 #define STATE_BLINKFAST 3
 #define STATE_ON 2
 
-#define MAX_VOLTS 27.0  //
-#define RECOVERY_VOLTS 24.0
+#define MAX_VOLTS 27.0  // when to open the safety relay
+#define RECOVERY_VOLTS 24.0  // when to close the safety relay
 int relayState = STATE_OFF;
 
-#define DANGER_VOLTS 27.5
+#define DANGER_VOLTS 27.5  // when to fast-flash white (slow-flash above last ledLevels)
 int dangerState = STATE_OFF;
 
 int blinkState = 0;
@@ -252,7 +252,7 @@ void doLeds(){
   for(i = 0; i < NUM_LEDS; i++) { // go through all voltages in ledLevels[]
     if (volts < ledLevels[0]) { // if voltage below minimum
       ledStrip.setPixelColor(i,dark);  // all lights out
-    } else if (volts == ledLevels[NUM_LEDS-1]) { // if voltage at highest level
+    } else if (volts > ledLevels[NUM_LEDS-1]) { // if voltage beyond highest level
       if (blinkState) { // make the lights blink
         ledStrip.setPixelColor(i,white);  // blinking white
       } else {
