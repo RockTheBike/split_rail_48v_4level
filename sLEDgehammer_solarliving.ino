@@ -235,7 +235,7 @@ int thermometerAnimation() {
 }
 
 int partyAnimation() {
-  #define SUSTAINED_VICTORY_THRESHOLD 11.0
+  #define SUSTAINED_VICTORY_THRESHOLD 8.0
   static int millis_until_next_frame = 2000;
   static int old_frame_index;
   static int new_frame_index = 0;
