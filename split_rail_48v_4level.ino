@@ -151,6 +151,8 @@ void doSafety() {
   if (relayState == STATE_ON && volts < RECOVERY_VOLTS){ // relay can turn off unless divida malfunctioning
     if (voltsDivida > (volts / 2 + 3 * DIVIDA_HYSTERESIS) && volts > 7) { // divida is malfunctioning
       digitalWrite(RELAYPIN, HIGH); // turn on relay because of failed divida
+      Serial.println("Divida is malfunctioning!");
+      delay(5000);
     } else if (voltsDivida < (volts / 2 + 2 * DIVIDA_HYSTERESIS)) { // divida is nearly fine
       digitalWrite(RELAYPIN, LOW); // turn relay off
     }
@@ -315,6 +317,9 @@ void printWattHours(){
 }
 
 void printDisplay(){
+  if (relayState == STATE_ON) {
+    Serial.print("RELAY ON  ");
+  }
   Serial.print(volts);
   Serial.print("v ");
   // Serial.print(analogRead(VOLTPIN));
