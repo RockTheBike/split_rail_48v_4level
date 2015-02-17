@@ -24,7 +24,7 @@
  * 2.3 - JS => create branch decida for split-rail system with automatic rail selection for pedallers (see decida.xcf)
  * 2.4 - JS => rip out a bunch of stuff that we haven't used in a long time
 */
-char versionStr[] = "Split-Rail DIVIDA 48 volt 7-line pedalometer Pedal Power Utility Box ver. 2.4 branch buck";
+char versionStr[] = "Split-Rail DIVIDA 48 volt 1bike 1speaker Pedal Power Utility Box ver. 2.4 branch 1b1s";
 
 // PINS
 #define DIVIDAPIN 13 // transistor pulls virtual ground toward minusrail
@@ -34,13 +34,13 @@ char versionStr[] = "Split-Rail DIVIDA 48 volt 7-line pedalometer Pedal Power Ut
 #define RELAYPIN 2 // relay cutoff output pin // NEVER USE 13 FOR A RELAY
 #define VOLTPIN A0 // Voltage Sensor Pin
 #define AMPSPIN A3 // Current Sensor Pin
-#define NUM_LEDS 7 // Number of LED outputs.
+#define NUM_LEDS 4 // Number of LED outputs.
 const int ledPins[NUM_LEDS] = {
-  3, 4, 5, 6, 7, 8, 11};
+  3, 4, 5, 6};
 
-// levels at which each LED turns on (not including special states)
+// levels at which each LED turns on, and dangerblink voltage
 const float ledLevels[NUM_LEDS+1] = {
-  24.0, 28.0, 32.0, 36.0, 40.0, 44.0, 48.0, 50.0}; // 48.6 or 54 volts max?
+  23.0, 28.0, 33.0, 38.0, 43.0};
 
 #define BRIGHTNESSVOLTAGE 24.0  // voltage at which LED brightness starts to fold back
 #define BRIGHTNESSBASE 255  // maximum brightness value (255 is max value here)
@@ -48,21 +48,11 @@ int brightness = 0;  // analogWrite brightness value, updated by getVoltageAndBr
 #define BRIGHTNESSFACTOR (BRIGHTNESSBASE / BRIGHTNESSVOLTAGE) / 2 // results in half PWM at double voltage
 // for every volt over BRIGHTNESSVOLTAGE, pwm is reduced by BRIGHTNESSFACTOR from BRIGHTNESSBASE
 
-// FAKE AC POWER VARIABLES
-#define KNOBPIN A2
-int knobAdc = 0;
-void doKnob(){ // look in calcWatts() to see if this is commented out
-  knobAdc = analogRead(KNOBPIN) - 10; // make sure not to add if knob is off
-  if (knobAdc < 0) knobAdc = 0; // values 0-10 count as zero
-}
-
 int analogState[NUM_LEDS] = {0}; // stores the last analogWrite() value for each LED
                                  // so we don't analogWrite unnecessarily!
 
 #define AVG_CYCLES 50 // average measured values over this many samples
 #define DISPLAY_INTERVAL 1000 // when auto-display is on, display every this many milli-seconds
-#define LED_UPDATE_INTERVAL 1000
-#define D4_AVG_PERIOD 10000
 #define BLINK_PERIOD 600
 #define FAST_BLINK_PERIOD 150
 
@@ -75,11 +65,11 @@ int analogState[NUM_LEDS] = {0}; // stores the last analogWrite() value for each
 int ledState[NUM_LEDS] = {
   STATE_OFF};
 
-#define MAX_VOLTS 50.5  //
-#define RECOVERY_VOLTS 44.0
+#define MAX_VOLTS 43.2  //
+#define RECOVERY_VOLTS 36.0
 int relayState = STATE_OFF;
 
-#define DANGER_VOLTS 52.0
+#define DANGER_VOLTS (MAX_VOLTS + 1.0)
 int dangerState = STATE_OFF;
 
 int blinkState = 0;
@@ -135,15 +125,6 @@ void loop() {
   getVolts();
   doDivida(); // perform megadivida function
   doSafety();
-  //  getAmps();  // only if we have a current sensor
-  //  calcWatts(); // also adds in knob value for extra wattage, unless commented out
-
-  //  if it's been at least 1/4 second since the last time we measured Watt Hours...
-  /*  if (time - wattHourTimer >= 250) {
-   calcWattHours();
-   wattHourTimer = time; // reset the integrator    
-   }
-  */
   doBlink();  // blink the LEDs
   doLeds();
 
