@@ -48,12 +48,6 @@ const int AMPSPINS[NUM_TEAMS] = { A3, A2 };  // Current Sensor Pins
 #define NUM_LEDS 12 // Number of LED outputs (includes (halogen) energy sinks)
 const int ledPins[NUM_LEDS] = {  3,4,5,6,7, 8,  9,10,11,12,A5, 13  };
 
-#define BRIGHTNESSVOLTAGE 24.0  // voltage at which LED brightness starts to fold back 
-#define BRIGHTNESSBASE 255  // maximum brightness value (255 is max value here) 
-int brightness = 0;  // analogWrite brightness value, updated by getVoltageAndBrightness() 
-#define BRIGHTNESSFACTOR (BRIGHTNESSBASE / BRIGHTNESSVOLTAGE) / 2 // results in half PWM at double voltage 
-// for every volt over BRIGHTNESSVOLTAGE, pwm is reduced by BRIGHTNESSFACTOR from BRIGHTNESSBASE 
-
 #define AVG_CYCLES 50 // average measured values over this many samples
 #define LONG_AVG_CYCLES 5000  // "long" average (eg team effort) measured values over this many samples
 #define DISPLAY_INTERVAL 500 // when auto-display is on, display every this many milli-seconds
@@ -96,17 +90,12 @@ float ampsAdcAvg[NUM_TEAMS];
 const float ampsBase[NUM_TEAMS] = { 511.00, 507.85 };  // measurement with zero current 
 const float ampsScale[NUM_TEAMS] = { 1, -1 }; 
 int winning_team;
-float volts2SecondsAgo = 0; 
 
-float watts = 0; 
-float wattHours = 0; 
-// timing variables for various processes: led updates, print, blink, etc 
+// timing variables for various processes: led updates, print, blink, etc
 unsigned long time = 0; 
 unsigned long timeFastBlink = 0; 
 unsigned long timeBlink = 0; 
 unsigned long timeDisplay = 0; 
-unsigned long wattHourTimer = 0; 
-unsigned long timeArbduinoTurnedOn = 0; 
 
 float voltishFactor = 1.0; // multiplier of voltage for competitive purposes
 float voltish = 0; // this is where we store the adjusted voltage
@@ -129,7 +118,6 @@ void setup() {
     digitalWrite(ledPins[i],LOW);
   }
   timeDisplay = millis();
-  timeArbduinoTurnedOn = timeDisplay;
 }
 
 void loop() {
@@ -346,11 +334,6 @@ void getVolts(){
   voltsAdc = analogRead(VOLTPIN);
   voltsAdcAvg = average(voltsAdc, voltsAdcAvg);
   volts = adc2volts(voltsAdcAvg);
-
-  brightness = BRIGHTNESSBASE;  // full brightness unless dimming is required
-  if (volts > BRIGHTNESSVOLTAGE)
-    brightness -= (BRIGHTNESSFACTOR * (volts - BRIGHTNESSVOLTAGE));  // brightness is reduced by overvoltage
-  // this means if voltage is 28 volts over, PWM will be 255 - (28*4.57) or 127, 50% duty cycle
 
   voltish = volts;
 }
