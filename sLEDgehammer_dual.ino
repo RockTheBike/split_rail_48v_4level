@@ -1,12 +1,11 @@
 #define BAUD_RATE 57600
 #define DEBUG 1 // set to 1 to enable serial information printing
-/**** Single-rail Pedalometer
- * Arduino code to run the Dance with Lance Arbduino
- * ver. 1.14
+/**** Pedalometer / sLEDgehammer
  * Written by:
  * Thomas Spellman <thomas@thosmos.com>
  * Jake <jake@spaz.org>
  * Paul@rockthebike.com
+ * mark@rockthebike.com
  *
  * Notes:
  * 1.6 - moved version to the top, started protocol of commenting every change in file and in Git commit
@@ -26,8 +25,9 @@
  * 2.4 - JS => rip out a bunch of stuff that we haven't used in a long time
  * 2.5 - JS => create branch sledge for ten-line sLEDgehammer pedalpower lightshow reactor
  * 2.6 - MPS => create branch solarliving for sLEDgehammer for Solar Living Center
+ * 2.7 - MPS => create branch dual for sLEDgehammer for Solar Living Center
 */
-char versionStr[] = "Single-Rail 12 volt sLEDgehammer for two teams at the Solar Living Center ver. 2.6 branch:solarliving";
+char versionStr[] = "Single-Rail 24 volt dualing sLEDgehammer ver. 2.7 branch:dual";
 
 // PINS
 // NEVER USE 13 FOR A RELAY:
