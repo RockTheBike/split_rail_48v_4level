@@ -35,16 +35,16 @@ char versionStr[] = "Single-Rail 24 volt dualing sLEDgehammer ver. 2.7 branch:du
 // see http://arduino.cc/en/Hacking/Bootloader
 #define RELAYPIN 2 // relay cutoff output pin
 #define NUM_TEAMS 2
-#define NUM_COLUMNS 5 
+#define NUM_COLUMNS 5
 
-// indexing into ledPins 
-#define LED_FOR_SINK 10  // ie halogen energy sink 
+// indexing into ledPins
+const int LED_FOR_SINKS[NUM_TEAMS] = { 5, 11 };  // ie halogen energy sinks
 const int LED_FOR_TEAM_COLUMN[NUM_TEAMS][NUM_COLUMNS] = {
   { 0, 1, 2, 3, 4 },
   { 6, 7, 8, 9, 10 } };
 
-#define VOLTPIN A0 // Voltage Sensor Pin 
-const int AMPSPINS[NUM_TEAMS] = { A3, A2 };  // Current Sensor Pins 
+#define VOLTPIN A0 // Voltage Sensor Pin
+const int AMPSPINS[NUM_TEAMS] = { A3, A2 };  // Current Sensor Pins
 #define NUM_LEDS 12 // Number of LED outputs (includes (halogen) energy sinks)
 const int ledPins[NUM_LEDS] = {  3,4,5,6,7, 8,  9,10,11,12,A5, 13  };
 
@@ -123,71 +123,65 @@ void setup() {
   pinMode(RELAYPIN, OUTPUT);
   digitalWrite(RELAYPIN,LOW);
 
-  // init LED pins 
+  // init LED pins
   for(i = 0; i < NUM_LEDS; i++) {
     pinMode(ledPins[i],OUTPUT);
-    digitalWrite(ledPins[i],LOW);   // does this work with A5? 
+    digitalWrite(ledPins[i],LOW);
   }
-  timeDisplay = millis(); 
-  timeArbduinoTurnedOn = timeDisplay; 
+  timeDisplay = millis();
+  timeArbduinoTurnedOn = timeDisplay;
 }
 
-void loop() { 
-  time = millis(); 
-  getVolts(); 
-  doSafety(); 
-  updateTeamEfforts(); 
-  realVolts = volts; // save realVolts for printDisplay function 
+void loop() {
+  time = millis();
+  getVolts();
+  doSafety();
+  updateTeamEfforts();
+  realVolts = volts; // save realVolts for printDisplay function
 
-  if(!dangerState) { 
-    playGame(); 
-  } 
+  if(!dangerState) {
+    playGame();
+  }
 
   doBlink();  // blink the LEDs
   doLeds();
 
-  if(time - timeDisplay > DISPLAY_INTERVAL){ 
-    printDisplay(); 
-    timeDisplay = time; 
-  } 
+  if(time - timeDisplay > DISPLAY_INTERVAL){
+    printDisplay();
+    timeDisplay = time;
+  }
 
-} 
-
-
-void playGame() { 
-    gameState = partyAnimation(); 
-    return;
+}
 
 
+void playGame() {
+  switch(gameState) {
+  case THERMOMETER_STATE:
+    gameState = thermometerAnimation();
+  break;
+  case PARTY_STATE:
+    gameState = partyAnimation();
+  break;
+  case DRAIN_STATE:
+    gameState = drainAnimation();
+  break;
+  }
+}
 
-
-  switch(gameState) { 
-  case THERMOMETER_STATE: 
-    gameState = thermometerAnimation(); 
-  break; 
-  case PARTY_STATE: 
-    gameState = partyAnimation(); 
-  break; 
-  case DRAIN_STATE: 
-    gameState = drainAnimation(); 
-  break; 
-  } 
-} 
-
-int thermometerAnimation() { 
-  #define VICTORY_THRESHOLD 12.5 
-  // we control the column LEDs with some combo of voltage and accumulated team effort 
-  static const float threshold_for_column_led[] = { 6.0, 8.0, 9.25, 10.5, 11.5 }; 
-  for( int team=0; team<NUM_TEAMS; team++ ) 
-    for( int col=0; col<NUM_COLUMNS; col++ ) { 
-      float creditedVolts = voltish * ampsAdcAvg[team] / max(ampsAdcAvg[0],ampsAdcAvg[1]); 
-      ledState[LED_FOR_TEAM_COLUMN[team][col]] = 
-        creditedVolts > threshold_for_column_led[col] ? STATE_ON : STATE_OFF; 
-    } 
-  ledState[LED_FOR_SINK] = STATE_OFF; 
-  // TODO:  if( no_one's_given_energy_in_5s ) return DRAIN_STATE; 
-  return voltish > VICTORY_THRESHOLD ? PARTY_STATE : THERMOMETER_STATE; 
-} 
+int thermometerAnimation() {
+  #define VICTORY_THRESHOLD 25.0
+  // we control the column LEDs with some combo of voltage and accumulated team effort
+  static const float threshold_for_column_led[] = { 12.0, 16.0, 18.5, 21.0, 23.0 };
+  for( int team=0; team<NUM_TEAMS; team++ )
+    for( int col=0; col<NUM_COLUMNS; col++ ) {
+      float creditedVolts = voltish * ampsAdcAvg[team] / max(ampsAdcAvg[0],ampsAdcAvg[1]);
+      ledState[LED_FOR_TEAM_COLUMN[team][col]] =
+        creditedVolts > threshold_for_column_led[col] ? STATE_ON : STATE_OFF;
+    ledState[LED_FOR_SINKS[team]] = STATE_OFF;
+    }
+  // TODO:  if( no_one's_given_energy_in_5s ) return DRAIN_STATE;
+  return voltish > VICTORY_THRESHOLD ? PARTY_STATE : THERMOMETER_STATE;
+}
 
 int partyAnimation() { 
   #define SUSTAINED_VICTORY_THRESHOLD 11.0 
@@ -255,14 +249,14 @@ int partyAnimation() {
   for( i=0; i<NUM_LEDS; i++ ) 
     ledState[i] = frames[frame_index][i] ? STATE_ON : STATE_OFF; 
   return voltish > SUSTAINED_VICTORY_THRESHOLD ? PARTY_STATE : DRAIN_STATE; 
-} 
+}
 
-int drainAnimation() { 
-  #define DRAINED_THRESHOLD 6.0 
-  for( i=0; i<NUM_LEDS; i++ ) 
-    ledState[i] = STATE_ON; 
-  return voltish < DRAINED_THRESHOLD ? THERMOMETER_STATE : DRAIN_STATE; 
-} 
+int drainAnimation() {
+  #define DRAINED_THRESHOLD 12.0
+  for( i=0; i<NUM_LEDS; i++ )
+    ledState[i] = STATE_ON;
+  return voltish < DRAINED_THRESHOLD ? THERMOMETER_STATE : DRAIN_STATE;
+}
 
 
 void doBlink(){
