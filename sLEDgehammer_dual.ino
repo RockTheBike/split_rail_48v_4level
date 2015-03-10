@@ -135,7 +135,7 @@ void loop() {
   doLeds();
 
   if(time - timeDisplay > DISPLAY_INTERVAL){
-    printDisplay();
+    if(DEBUG) printDisplay();
     timeDisplay = time;
   }
 
@@ -353,20 +353,17 @@ float adc2volts(float adc){
 }
 
 void printDisplay(){
-  if (DEBUG) Serial.print(realVolts);
-  if (DEBUG) Serial.print("v ");
-  if (DEBUG) Serial.print(volts);
-  if (DEBUG) Serial.print("fv ");
-  if (DEBUG && voltishFactor > 1.0) Serial.print(voltish);
-  if (DEBUG && voltishFactor > 1.0) Serial.print("voltish ");
-  // if (DEBUG) Serial.print(analogRead(VOLTPIN));
-  if (DEBUG) Serial.print("   relayState: ");
-  if (DEBUG) Serial.print(relayState);
-  if (DEBUG) Serial.print("  gameState: ");
-  if (DEBUG) Serial.print(gameState);
-  if (DEBUG) Serial.print("  efforts:");
-  if (DEBUG) Serial.print(ampsAdcAvg[0]);
-  if (DEBUG) Serial.print( winning_team ? '<' : '>' );
-  if (DEBUG) Serial.print(ampsAdcAvg[1]);
-  if (DEBUG) Serial.println();
+  Serial.print(realVolts);
+  Serial.print("v ");
+  Serial.print(volts);
+  Serial.print("fv ");
+  Serial.print("   relayState: ");
+  Serial.print(relayState);
+  Serial.print("  gameState: ");
+  Serial.print(gameState);
+  Serial.print("  efforts:");
+  Serial.print(ampsAdcAvg[0]);
+  Serial.print( winning_team ? '<' : '>' );
+  Serial.print(ampsAdcAvg[1]);
+  Serial.println();
 }
