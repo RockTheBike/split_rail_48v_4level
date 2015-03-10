@@ -90,7 +90,6 @@ float ampsAdcAvg[NUM_TEAMS];
 const float ampsBase[NUM_TEAMS] = { 511.00, 507.85 };  // measurement with zero current 
 const float ampsScale[NUM_TEAMS] = { 1, -1 }; 
 int winning_team;
-int won_team;
 
 // timing variables for various processes: led updates, print, blink, etc
 unsigned long time = 0;
@@ -157,10 +156,11 @@ void playGame() {
   }
 }
 
+
+static const float threshold_for_column_led[] = { 12.0, 16.0, 18.5, 21.0, 23.0 };
 int thermometerAnimation() {
   #define VICTORY_THRESHOLD 25.0
   // we control the column LEDs with some combo of voltage and accumulated team effort
-  static const float threshold_for_column_led[] = { 12.0, 16.0, 18.5, 21.0, 23.0 };
   for( int team=0; team<NUM_TEAMS; team++ ) {
     float creditedVolts = voltish * ampsAdcAvg[team] / max(ampsAdcAvg[0],ampsAdcAvg[1]);
     for( int col=0; col<NUM_COLUMNS; col++ )
@@ -169,7 +169,23 @@ int thermometerAnimation() {
     ledState[LED_FOR_TEAM_SINKS[team]] = STATE_OFF;
   }
   // TODO:  if( no_one's_given_energy_in_5s ) return DRAIN_STATE;
-  return voltish > VICTORY_THRESHOLD ? PARTY_STATE : THERMOMETER_STATE;
+  if( voltish > VICTORY_THRESHOLD ) {
+    enterPartyState();
+    return PARTY_STATE;
+  }
+  return THERMOMETER_STATE;
+}
+
+
+// state for party mode
+unsigned long victory_time;
+int won_team;
+float losing_credited_voltage;
+
+void enterPartyState() {
+  victory_time = time;
+  won_team = winning_team;
+  losing_credited_voltage = voltish * ampsAdcAvg[!won_team] / max(ampsAdcAvg[0],ampsAdcAvg[1]);
 }
 
 int partyAnimation() {
@@ -183,7 +199,6 @@ int partyAnimation() {
   ledState[LED_FOR_TEAM_SINKS[!won_team]] = volts > FLUFFING_THRESHOLD ? STATE_ON : STATE_OFF;
   return voltish > SUSTAINED_VICTORY_THRESHOLD ? PARTY_STATE : DRAIN_STATE;
 }
-
 
 int partyAnimationWinner() {
   static int millis_until_next_frame = 2000; 
@@ -212,11 +227,15 @@ int partyAnimationWinner() {
       frames[frame_index][i] ? STATE_ON : STATE_OFF;
 }
 
+#define SLUICE_TIME 3000
 int partyAnimationLoser() {
-  // TODO:  make draining animation
-  for( i=0; i<NUM_COLUMNS; i++ )
-    ledState[LED_FOR_TEAM_COLUMN[!won_team][i]] = STATE_OFF;
+  float creditedVolts = time > victory_time + SLUICE_TIME ?
+    0 : losing_credited_voltage * (time-victory_time ) / SLUICE_TIME;
+  for( int col=0; col<NUM_COLUMNS; col++ )
+    ledState[LED_FOR_TEAM_COLUMN[!won_team][col]] =
+      creditedVolts > threshold_for_column_led[col] ? STATE_ON : STATE_OFF;
 }
+
 
 int drainAnimation() {
   #define DRAINED_THRESHOLD 12.0
@@ -307,7 +326,6 @@ void updateTeamEfforts() {
     ampsAdcAvg[i] = long_average(ampsAdc, ampsAdcAvg[i]);
   }
   winning_team = ampsAdcAvg[0] < ampsAdcAvg[1];
-  won_team = winning_team;  // TODO:  make it stick upon victory
 }
 
 void getVolts(){
