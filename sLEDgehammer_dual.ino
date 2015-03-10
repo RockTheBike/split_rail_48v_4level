@@ -162,11 +162,10 @@ int thermometerAnimation() {
   // we control the column LEDs with some combo of voltage and accumulated team effort
   static const float threshold_for_column_led[] = { 12.0, 16.0, 18.5, 21.0, 23.0 };
   for( int team=0; team<NUM_TEAMS; team++ ) {
-    for( int col=0; col<NUM_COLUMNS; col++ ) {
-      float creditedVolts = voltish * ampsAdcAvg[team] / max(ampsAdcAvg[0],ampsAdcAvg[1]);
+    float creditedVolts = voltish * ampsAdcAvg[team] / max(ampsAdcAvg[0],ampsAdcAvg[1]);
+    for( int col=0; col<NUM_COLUMNS; col++ )
       ledState[LED_FOR_TEAM_COLUMN[team][col]] =
         creditedVolts > threshold_for_column_led[col] ? STATE_ON : STATE_OFF;
-    }
     ledState[LED_FOR_TEAM_SINKS[team]] = STATE_OFF;
   }
   // TODO:  if( no_one's_given_energy_in_5s ) return DRAIN_STATE;
