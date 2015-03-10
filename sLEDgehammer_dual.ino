@@ -327,7 +327,7 @@ void updateTeamEfforts() {
     ampsAdc = ( analogRead(AMPSPINS[i]) - ampsBase[i] ) * ampsScale[i];
     ampsAdcAvg[i] = long_average(ampsAdc, ampsAdcAvg[i]);
   }
-  winning_team = ampsAdcAvg[0] > ampsAdcAvg[1];
+  winning_team = ampsAdcAvg[0] < ampsAdcAvg[1];
 }
 
 void getVolts(){
