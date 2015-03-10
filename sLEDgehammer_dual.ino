@@ -365,5 +365,13 @@ void printDisplay(){
   Serial.print(ampsAdcAvg[0]);
   Serial.print( winning_team ? '<' : '>' );
   Serial.print(ampsAdcAvg[1]);
+  Serial.print("   LEDs:  ");
+  const char* separators[] = {
+    ",", ",", ",", ",", ", ", ",  ",
+    ",", ",", ",", ",", ", ", "" };
+  for(i=0;i<NUM_LEDS;i++) {
+    Serial.print(ledState[i]);
+    Serial.print(separators[i]);
+  }
   Serial.println();
 }
