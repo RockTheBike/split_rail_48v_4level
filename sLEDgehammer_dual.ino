@@ -38,7 +38,7 @@ char versionStr[] = "Single-Rail 24 volt dualing sLEDgehammer ver. 2.7 branch:du
 #define NUM_COLUMNS 5
 
 // indexing into ledPins
-const int LED_FOR_SINKS[NUM_TEAMS] = { 5, 11 };  // ie halogen energy sinks
+const int LED_FOR_TEAM_SINKS[NUM_TEAMS] = { 5, 11 };  // ie halogen energy sinks
 const int LED_FOR_TEAM_COLUMN[NUM_TEAMS][NUM_COLUMNS] = {
   { 0, 1, 2, 3, 4 },
   { 6, 7, 8, 9, 10 } };
@@ -90,6 +90,7 @@ float ampsAdcAvg[NUM_TEAMS];
 const float ampsBase[NUM_TEAMS] = { 511.00, 507.85 };  // measurement with zero current 
 const float ampsScale[NUM_TEAMS] = { 1, -1 }; 
 int winning_team;
+int won_team;
 
 // timing variables for various processes: led updates, print, blink, etc
 unsigned long time = 0;
@@ -160,83 +161,62 @@ int thermometerAnimation() {
   #define VICTORY_THRESHOLD 25.0
   // we control the column LEDs with some combo of voltage and accumulated team effort
   static const float threshold_for_column_led[] = { 12.0, 16.0, 18.5, 21.0, 23.0 };
-  for( int team=0; team<NUM_TEAMS; team++ )
+  for( int team=0; team<NUM_TEAMS; team++ ) {
     for( int col=0; col<NUM_COLUMNS; col++ ) {
       float creditedVolts = voltish * ampsAdcAvg[team] / max(ampsAdcAvg[0],ampsAdcAvg[1]);
       ledState[LED_FOR_TEAM_COLUMN[team][col]] =
         creditedVolts > threshold_for_column_led[col] ? STATE_ON : STATE_OFF;
-    ledState[LED_FOR_SINKS[team]] = STATE_OFF;
     }
+    ledState[LED_FOR_TEAM_SINKS[team]] = STATE_OFF;
+  }
   // TODO:  if( no_one's_given_energy_in_5s ) return DRAIN_STATE;
   return voltish > VICTORY_THRESHOLD ? PARTY_STATE : THERMOMETER_STATE;
 }
 
 int partyAnimation() {
   #define SUSTAINED_VICTORY_THRESHOLD 22.0
+  #define FLUFFING_THRESHOLD 26
+  partyAnimationWinner();
+  partyAnimationLoser();
+  // add load to make winner work to sustain party mode
+  ledState[LED_FOR_TEAM_SINKS[won_team]] = STATE_ON;
+  // turn on loser's halogen if we fear voltage that would trip relay
+  ledState[LED_FOR_TEAM_SINKS[!won_team]] = volts > FLUFFING_THRESHOLD ? STATE_ON : STATE_OFF;
+  return voltish > SUSTAINED_VICTORY_THRESHOLD ? PARTY_STATE : DRAIN_STATE;
+}
+
+
+int partyAnimationWinner() {
   static int millis_until_next_frame = 2000; 
   static int old_frame_index; 
   static int new_frame_index = 0; 
   static unsigned long time_for_next_frame; 
-  // turn on at leaste one halogen sink so sudden drop in load doesn't overpower capacitor
-  const int frames_single_clockwise[][NUM_LEDS] = { 
-    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 }, 
-    { 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1 }, 
-    { 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1 }, 
-    { 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1 }, 
-    { 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1 }, 
-    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1 }, 
-    { 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1 }, 
-    { 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1 }, 
-    { 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1 }, 
-    { 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 } }; 
-  const int frames_double_wide[][NUM_LEDS] = { 
-    { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1 }, 
-    { 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1 }, 
-    { 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1 }, 
-    { 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1 }, 
-    { 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1 }, 
-    { 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1 }, 
-    { 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1 }, 
-    { 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1 }, 
-    { 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1 }, 
-    { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 } }; 
-  const int frames_opposite[][NUM_LEDS] = { 
-    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1 }, 
-    { 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1 }, 
-    { 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1 }, 
-    { 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1 }, 
-    { 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1 } }; 
-  #define frames frames_double_wide 
-  // advance to (or initialize) the next frame when necessary 
-  if( time >= time_for_next_frame ) { 
-    // we want 0->2000, 14->50, 13->100 
-    // m = a * v**2 + b * v + c 
-    // 2000 = a * 0**2 + b * 0 + c 
-    // 50 = a * 14**2 + b * 14 + c 
-    // 100 = a * 13**2 + b * 13 + c 
-    // c = 2000 
-    // -1950 = a * 14**2 + b * 14 
-    // -1900 = a * 13**2 + b * 13 
-    // -1950 = a * 196 + b * 14 
-    // -1900 = a * 169 + b * 13 
-    // -25350 = a * 2548 + b * 182 
-    // -26600 = a * 2366 + b * 182 
-    // 1250 = a * 182 
-    // 6.868 = a 
-    // -1900 = 6.868 * 169 + b * 13 
-    // -235.4378 = b 
-    millis_until_next_frame = 6.868 * volts*volts + -235.4378 * volts + 2000; 
-    millis_until_next_frame = 200;  
-    time_for_next_frame = 
-      ( time_for_next_frame ? time_for_next_frame : time ) + millis_until_next_frame; 
-    old_frame_index = new_frame_index; 
-    new_frame_index = (new_frame_index+1) % (sizeof(frames)/sizeof(*frames)); 
-  } 
+  // turn on at least one halogen sink so sudden drop in load doesn't overpower capacitor
+  const int frames[][NUM_COLUMNS] = {
+    { 1, 1, 0, 0, 0 },
+    { 0, 1, 1, 0, 0 },
+    { 0, 0, 1, 1, 0 },
+    { 0, 0, 0, 1, 1 },
+    { 1, 0, 0, 0, 1 } };
+  // advance to (or initialize) the next frame when necessary
+  if( time >= time_for_next_frame ) {
+    millis_until_next_frame = 6.868 * volts*volts + -235.4378 * volts + 2000;
+    time_for_next_frame =
+      ( time_for_next_frame ? time_for_next_frame : time ) + millis_until_next_frame;
+    old_frame_index = new_frame_index;
+    new_frame_index = (new_frame_index+1) % (sizeof(frames)/sizeof(*frames));
+  }
   // PWM via picking between frames with increasing probability of later frame 
-  int frame_index = rand() < RAND_MAX / millis_until_next_frame * ( time_for_next_frame - time ) ? old_frame_index : new_frame_index; 
-  for( i=0; i<NUM_LEDS; i++ ) 
-    ledState[i] = frames[frame_index][i] ? STATE_ON : STATE_OFF; 
-  return voltish > SUSTAINED_VICTORY_THRESHOLD ? PARTY_STATE : DRAIN_STATE; 
+  int frame_index = rand() < RAND_MAX / millis_until_next_frame * ( time_for_next_frame - time ) ? old_frame_index : new_frame_index;
+  for( i=0; i<NUM_COLUMNS; i++ )
+    ledState[LED_FOR_TEAM_COLUMN[won_team][i]] =
+      frames[frame_index][i] ? STATE_ON : STATE_OFF;
+}
+
+int partyAnimationLoser() {
+  // TODO:  make draining animation
+  for( i=0; i<NUM_COLUMNS; i++ )
+    ledState[LED_FOR_TEAM_COLUMN[!won_team][i]] = STATE_OFF;
 }
 
 int drainAnimation() {
@@ -328,6 +308,7 @@ void updateTeamEfforts() {
     ampsAdcAvg[i] = long_average(ampsAdc, ampsAdcAvg[i]);
   }
   winning_team = ampsAdcAvg[0] < ampsAdcAvg[1];
+  won_team = winning_team;  // TODO:  make it stick upon victory
 }
 
 void getVolts(){
