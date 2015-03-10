@@ -171,13 +171,13 @@ int thermometerAnimation() {
   return voltish > VICTORY_THRESHOLD ? PARTY_STATE : THERMOMETER_STATE;
 }
 
-int partyAnimation() { 
-  #define SUSTAINED_VICTORY_THRESHOLD 11.0 
+int partyAnimation() {
+  #define SUSTAINED_VICTORY_THRESHOLD 22.0
   static int millis_until_next_frame = 2000; 
   static int old_frame_index; 
   static int new_frame_index = 0; 
   static unsigned long time_for_next_frame; 
-  // turn on halogen sink so sudden drop in load doesn't overpower capacitor 
+  // turn on at leaste one halogen sink so sudden drop in load doesn't overpower capacitor
   const int frames_single_clockwise[][NUM_LEDS] = { 
     { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 }, 
     { 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1 }, 
