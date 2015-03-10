@@ -201,10 +201,10 @@ int partyAnimation() {
 }
 
 int partyAnimationWinner() {
-  static int millis_until_next_frame = 2000; 
-  static int old_frame_index; 
-  static int new_frame_index = 0; 
-  static unsigned long time_for_next_frame; 
+  static int millis_until_next_frame = 2000;
+  static int old_frame_index;
+  static int new_frame_index = 0;
+  static unsigned long time_for_next_frame;
   // turn on at least one halogen sink so sudden drop in load doesn't overpower capacitor
   const int frames[][NUM_COLUMNS] = {
     { 1, 1, 0, 0, 0 },
@@ -214,13 +214,31 @@ int partyAnimationWinner() {
     { 1, 0, 0, 0, 1 } };
   // advance to (or initialize) the next frame when necessary
   if( time >= time_for_next_frame ) {
-    millis_until_next_frame = 6.868 * volts*volts + -235.4378 * volts + 2000;
+    // we want 0->2000, 28->50, 26->100
+    // m = a * v**2 + b * v + c
+    // 2000 = a * 0**2 + b * 0 + c
+    // 50 = a * 28**2 + b * 28 + c
+    // 100 = a * 26**2 + b * 26 + c
+    // c = 2000
+    // -1950 = a * 28**2 + b * 28
+    // -1900 = a * 26**2 + b * 26
+    // -1950 = a * 784 + b * 27
+    // -1900 = a * 676 + b * 26
+    // -50700 = a * 20384 + b * 702
+    // -51300 = a * 18252 + b * 702
+    // 600 = a * 2132
+    // 0.2814 = a
+    // -1900 = 0.2814 * 676 + b * 26
+    // -1900 = 190.2264 + b * 26
+    // -2090.2264 = b * 26
+    // -80.393323 = b
+    millis_until_next_frame = 0.2814 * volts*volts + -80.393323 * volts + 2000;
     time_for_next_frame =
       ( time_for_next_frame ? time_for_next_frame : time ) + millis_until_next_frame;
     old_frame_index = new_frame_index;
     new_frame_index = (new_frame_index+1) % (sizeof(frames)/sizeof(*frames));
   }
-  // PWM via picking between frames with increasing probability of later frame 
+  // PWM via picking between frames with increasing probability of later frame
   int frame_index = rand() < RAND_MAX / millis_until_next_frame * ( time_for_next_frame - time ) ? old_frame_index : new_frame_index;
   for( i=0; i<NUM_COLUMNS; i++ )
     ledState[LED_FOR_TEAM_COLUMN[won_team][i]] =
