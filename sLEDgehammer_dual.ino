@@ -84,18 +84,18 @@ float volts,realVolts = 0;
 # define DRAIN_STATE 2
 int gameState = THERMOMETER_STATE;
 
-//Current related variables 
-int ampsAdc = 0; 
-float ampsAdcAvg[NUM_TEAMS]; 
+//Current related variables
+int ampsAdc = 0;
+float ampsAdcAvg[NUM_TEAMS];
 const float ampsBase[NUM_TEAMS] = { 511.00, 507.85 };  // measurement with zero current 
 const float ampsScale[NUM_TEAMS] = { 1, -1 }; 
 int winning_team;
 
 // timing variables for various processes: led updates, print, blink, etc
-unsigned long time = 0; 
-unsigned long timeFastBlink = 0; 
-unsigned long timeBlink = 0; 
-unsigned long timeDisplay = 0; 
+unsigned long time = 0;
+unsigned long timeFastBlink = 0;
+unsigned long timeBlink = 0;
+unsigned long timeDisplay = 0;
 
 float voltishFactor = 1.0; // multiplier of voltage for competitive purposes
 float voltish = 0; // this is where we store the adjusted voltage
