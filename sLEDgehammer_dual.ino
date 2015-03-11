@@ -160,15 +160,22 @@ void playGame() {
 }
 
 
-static const float threshold_for_column_led[] = { 12.0, 16.0, 18.5, 21.0, 23.0 };
+#define VICTORY_THRESHOLD 25.0
+// a column should start to glow at its threshold_for_column_led
+// and reach PWM 100% at its higher neighbor's threshold_for_column_led.
+static const float threshold_for_column_led[] = { 12.0, 16.0, 18.5, 21.0, 23.0, VICTORY_THRESHOLD };
 int thermometerAnimation() {
-  #define VICTORY_THRESHOLD 25.0
   // we control the column LEDs with some combo of voltage and accumulated team effort
   for( int team=0; team<NUM_TEAMS; team++ ) {
     float creditedVolts = creditVolts( team );
     for( int col=0; col<NUM_COLUMNS; col++ )
       ledState[LED_FOR_TEAM_COLUMN[team][col]] =
-        creditedVolts > threshold_for_column_led[col] ? STATE_ON : STATE_OFF;
+        creditedVolts < threshold_for_column_led[col] ? STATE_OFF :
+        creditedVolts > threshold_for_column_led[col+1] ? STATE_ON :
+        rand() < RAND_MAX *
+          (                   creditedVolts - threshold_for_column_led[col] ) /
+          ( threshold_for_column_led[col+1] - threshold_for_column_led[col] ) ?
+          STATE_ON : STATE_OFF;
     ledState[LED_FOR_TEAM_SINKS[team]] = STATE_OFF;
   }
   // TODO:  if( no_one's_given_energy_in_5s ) return DRAIN_STATE;
