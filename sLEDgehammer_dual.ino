@@ -450,7 +450,7 @@ void printDisplay(){
   Serial.print( analogRead(AMPSPINS[1]) );
   Serial.print("]");
 #endif
-  Serial.print("   LEDs:");
+  Serial.print("   LEDs:  ");
   const char* separators[] = {
     ",", ",", ",", ",", ", ", ",  ",
     ",", ",", ",", ",", ", ", "" };
