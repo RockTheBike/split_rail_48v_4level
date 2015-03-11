@@ -63,6 +63,13 @@ const int ledPins[NUM_LEDS] = {  3,4,5,6,7, 8,  9,10,11,12,A5, 13  };
 int ledState[NUM_LEDS] = {
   STATE_OFF};
 
+#define DISABLE_ALL_PWM
+#ifdef DISABLE_ALL_PWM
+#define DISABLE_THERMOMETER_PWM
+#define DISABLE_PARTY_PWM
+#define DISABLE_DRAIN_PWM
+#endif
+
 #define MAX_VOLTS 27.0
 #define RECOVERY_VOLTS 26.0
 int relayState = STATE_OFF;
@@ -178,11 +185,15 @@ int thermometerAnimation() {
     for( int col=0; col<NUM_COLUMNS; col++ )
       ledState[LED_FOR_TEAM_COLUMN[team][col]] =
         creditedVolts < threshold_for_column_led[col] ? STATE_OFF :
+#ifdef DISABLE_THERMOMETER_PWM
+        STATE_ON;
+#else
         creditedVolts > threshold_for_column_led[col+1] ? STATE_ON :
         rand() < RAND_MAX *
           (                   creditedVolts - threshold_for_column_led[col] ) /
           ( threshold_for_column_led[col+1] - threshold_for_column_led[col] ) ?
           STATE_ON : STATE_OFF;
+#endif
     ledState[LED_FOR_TEAM_SINKS[team]] = STATE_OFF;
   }
   // TODO:  if( no_one's_given_energy_in_5s ) return DRAIN_STATE;
@@ -244,8 +255,12 @@ int partyAnimationWinner() {
     old_frame_index = new_frame_index;
     new_frame_index = (new_frame_index+1) % (sizeof(frames)/sizeof(*frames));
   }
+#ifdef DISABLE_PARTY_PWM
+  int frame_index = old_frame_index;
+#else
   // PWM via picking between frames with increasing probability of later frame
   int frame_index = rand() < RAND_MAX / millis_until_next_frame * ( time_for_next_frame - time ) ? old_frame_index : new_frame_index;
+#endif
   for( i=0; i<NUM_COLUMNS; i++ )
     ledState[LED_FOR_TEAM_COLUMN[won_team][i]] =
       frames[frame_index][i] ? STATE_ON : STATE_OFF;
@@ -284,8 +299,12 @@ int drainAnimation() {
     old_frame_index = new_frame_index;
     new_frame_index = (new_frame_index+1) % (sizeof(frames)/sizeof(*frames));
   }
+#ifdef DISABLE_DRAIN_PWM
+  int frame_index = old_frame_index;
+#else
   // PWM via picking between frames with increasing probability of later frame
   int frame_index = rand() < RAND_MAX / millis_until_next_frame * ( time_for_next_frame - time ) ? old_frame_index : new_frame_index;
+#endif
   for( i=0; i<NUM_LEDS; i++ )
     ledState[i] = frames[frame_index][i] ? STATE_ON : STATE_OFF;
   return voltish < DRAINED_THRESHOLD ? THERMOMETER_STATE : DRAIN_STATE;
