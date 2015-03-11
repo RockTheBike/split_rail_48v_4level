@@ -96,6 +96,10 @@ int winning_team;
 
 // timing variables for various processes: led updates, print, blink, etc
 unsigned long time = 0;
+#define DISPLAY_TIME
+#ifdef DISPLAY_TIME
+unsigned long loopcount = 0;
+#endif
 unsigned long timeFastBlink = 0;
 unsigned long timeBlink = 0;
 unsigned long timeDisplay = 0;
@@ -142,6 +146,9 @@ void loop() {
     timeDisplay = time;
   }
 
+#ifdef DISPLAY_TIME
+  loopcount++;
+#endif
 }
 
 
@@ -418,6 +425,20 @@ float creditVolts( int team ) {
 }
 
 void printDisplay(){
+#ifdef DISPLAY_TIME
+  Serial.print( loopcount );
+  Serial.print( "loops " );
+  Serial.print( time/1000/60 );
+  Serial.print( ':' );
+  Serial.print( time/1000%60 );  // TODO "%02d"
+  Serial.print( ' ' );
+#define DISPLAY_REFRESH_RATE
+#ifdef DISPLAY_REFRESH_RATE
+  Serial.print( loopcount * 1000 / time );
+  Serial.print( "Hz " );
+#endif
+  Serial.print( ' ' );
+#endif
   Serial.print(realVolts);
   Serial.print("v ");
   Serial.print(volts);
