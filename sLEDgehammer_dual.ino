@@ -165,7 +165,7 @@ int thermometerAnimation() {
   #define VICTORY_THRESHOLD 25.0
   // we control the column LEDs with some combo of voltage and accumulated team effort
   for( int team=0; team<NUM_TEAMS; team++ ) {
-    float creditedVolts = voltish * ampsAdcAvg[team] / max(ampsAdcAvg[0],ampsAdcAvg[1]);
+    float creditedVolts = creditVolts( team );
     for( int col=0; col<NUM_COLUMNS; col++ )
       ledState[LED_FOR_TEAM_COLUMN[team][col]] =
         creditedVolts > threshold_for_column_led[col] ? STATE_ON : STATE_OFF;
@@ -183,12 +183,12 @@ int thermometerAnimation() {
 // state for party mode
 unsigned long victory_time;
 int won_team;
-float losing_credited_voltage;
+float losingCreditedVolts;
 
 void enterPartyState() {
   victory_time = time;
   won_team = winning_team;
-  losing_credited_voltage = voltish * ampsAdcAvg[!won_team] / max(ampsAdcAvg[0],ampsAdcAvg[1]);
+  losingCreditedVolts = creditVolts( ! won_team );
 }
 
 int partyAnimation() {
@@ -251,7 +251,7 @@ int partyAnimationWinner() {
 #define SLUICE_TIME 3000
 int partyAnimationLoser() {
   float creditedVolts = time > victory_time + SLUICE_TIME ?
-    0 : losing_credited_voltage * (victory_time+SLUICE_TIME-time) / SLUICE_TIME;
+    0 : losingCreditedVolts * (victory_time+SLUICE_TIME-time) / SLUICE_TIME;
   for( int col=0; col<NUM_COLUMNS; col++ )
     ledState[LED_FOR_TEAM_COLUMN[!won_team][col]] =
       creditedVolts > threshold_for_column_led[col] ? STATE_ON : STATE_OFF;
@@ -371,6 +371,20 @@ float long_average(float val, float avg){
 
 float adc2volts(float adc){
   return adc * (1 / VOLTCOEFF);
+}
+
+// We credit each team with some fraction of the voltage in the common
+// capacitor (but the fractions don't sum to 1).  The winning team gets
+// credit for everything (because victory is defined to be when the winning
+// team reaches the top).  The losing team gets credit proportional to the
+// (recent) ratio of currents.
+float creditVolts( int team ) {
+  if( team==winning_team )
+    return voltish;
+  else if( ampsAdcAvg[team] <= 0 )
+    return 0;
+  else
+    return voltish * ampsAdcAvg[team] / ampsAdcAvg[winning_team];
 }
 
 void printDisplay(){
