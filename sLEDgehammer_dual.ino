@@ -87,8 +87,11 @@ int gameState = THERMOMETER_STATE;
 //Current related variables
 int ampsAdc = 0;
 float ampsAdcAvg[NUM_TEAMS];
-const float ampsBase[NUM_TEAMS] = { 511.00, 507.85 };  // measurement with zero current 
-const float ampsScale[NUM_TEAMS] = { 1, -1 }; 
+const float ampsBase[NUM_TEAMS] = { 508, 510 };  // measurement with zero current
+const float rawAmpsReadingAt3A[NUM_TEAMS] = { 481, 483 };
+const float ampsScale[NUM_TEAMS] = {
+  3 / ( rawAmpsReadingAt3A[0] - ampsBase[0] ),
+  3 / ( rawAmpsReadingAt3A[1] - ampsBase[1] ) };
 int winning_team;
 
 // timing variables for various processes: led updates, print, blink, etc
@@ -380,9 +383,19 @@ void printDisplay(){
   Serial.print("  gameState: ");
   Serial.print(gameState);
   Serial.print("  efforts:");
+#ifdef DISPLAY_RAW_CURRENTS
+  Serial.print("[");
+  Serial.print( analogRead(AMPSPINS[0]) );
+  Serial.print("]");
+#endif
   Serial.print(ampsAdcAvg[0]);
   Serial.print( winning_team ? '<' : '>' );
   Serial.print(ampsAdcAvg[1]);
+#ifdef DISPLAY_RAW_CURRENTS
+  Serial.print("[");
+  Serial.print( analogRead(AMPSPINS[1]) );
+  Serial.print("]");
+#endif
   Serial.print("   LEDs:  ");
   const char* separators[] = {
     ",", ",", ",", ",", ", ", ",  ",
