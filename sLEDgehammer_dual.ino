@@ -174,10 +174,10 @@ void playGame() {
 }
 
 
-#define VICTORY_THRESHOLD 25.0
+#define VICTORY_THRESHOLD 22.0
 // a column should start to glow at its threshold_for_column_led
 // and reach PWM 100% at its higher neighbor's threshold_for_column_led
-static const float threshold_for_column_led[] = { 12.0, 16.0, 18.5, 21.0, 23.0, VICTORY_THRESHOLD };
+static const float threshold_for_column_led[] = { 12.5, 14.5, 16.5, 18.5, 20.5, VICTORY_THRESHOLD };
 int thermometerAnimation() {
   // we control the column LEDs with some combo of voltage and accumulated team effort
   for( int team=0; team<NUM_TEAMS; team++ ) {
@@ -217,7 +217,7 @@ void enterPartyState() {
 }
 
 int partyAnimation() {
-  #define SUSTAINED_VICTORY_THRESHOLD 22.0
+  #define SUSTAINED_VICTORY_THRESHOLD 19.0
   #define FLUFFING_THRESHOLD 26
   partyAnimationWinner();
   partyAnimationLoser();
