@@ -49,7 +49,7 @@ const int AMPSPINS[NUM_TEAMS] = { A3, A2 };  // Current Sensor Pins
 const int ledPins[NUM_LEDS] = {  3,4,5,6,7, 8,  9,10,11,12,A5, 13  };
 
 #define AVG_CYCLES 50 // average measured values over this many samples
-#define LONG_AVG_CYCLES 5000  // "long" average (eg team effort) measured values over this many samples
+#define LONG_AVG_CYCLES 10000  // "long" average (eg team effort) measured values over this many samples (running a bit above 1kHz)
 #define DISPLAY_INTERVAL 500 // when auto-display is on, display every this many milli-seconds
 #define BLINK_PERIOD 600
 #define FAST_BLINK_PERIOD 150
