@@ -211,9 +211,15 @@ int won_team;
 float losingCreditedVolts;
 
 void enterPartyState() {
-  victory_time = time;
   won_team = winning_team;
   losingCreditedVolts = creditVolts( ! won_team );
+  Serial.print("victory");
+  for( int i=5; i; i-- ) {
+    Serial.print(i);
+    delay(1000);
+  }
+  Serial.println("!");
+  victory_time = millis();
 }
 
 int partyAnimation() {
@@ -266,7 +272,7 @@ int partyAnimationWinner() {
       frames[frame_index][i] ? STATE_ON : STATE_OFF;
 }
 
-#define SLUICE_TIME 3000
+#define SLUICE_TIME 9000
 int partyAnimationLoser() {
   float creditedVolts = time > victory_time + SLUICE_TIME ?
     0 : losingCreditedVolts * (victory_time+SLUICE_TIME-time) / SLUICE_TIME;
