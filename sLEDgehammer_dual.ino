@@ -269,7 +269,7 @@ int partyAnimationWinner() {
 #define SLUICE_TIME 3000
 int partyAnimationLoser() {
   float creditedVolts = time > victory_time + SLUICE_TIME ?
-    0 : losingCreditedVolts * (time-victory_time ) / SLUICE_TIME;
+    0 : losingCreditedVolts * (victory_time+SLUICE_TIME-time) / SLUICE_TIME;
   for( int col=0; col<NUM_COLUMNS; col++ )
     ledState[LED_FOR_TEAM_COLUMN[!won_team][col]] =
       creditedVolts > threshold_for_column_led[col] ? STATE_ON : STATE_OFF;
