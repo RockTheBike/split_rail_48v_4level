@@ -136,7 +136,11 @@ void setup() {
 
 void loop() {
   time = millis();
+  static unsigned long next_volts_reading = 0;
+  if( time > next_volts_reading ) {
   getVolts();
+    next_volts_reading = time + 500;
+  }
   doSafety();
   updateTeamEfforts();
   realVolts = volts; // save realVolts for printDisplay function
