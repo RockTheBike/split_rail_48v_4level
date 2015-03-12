@@ -63,7 +63,7 @@ const int ledPins[NUM_LEDS] = {  3,4,5,6,7, 8,  9,10,11,12,A5, 13  };
 int ledState[NUM_LEDS] = {
   STATE_OFF};
 
-#define DISABLE_ALL_PWM
+#define DISABLE_THERMOMETER_PWM
 #ifdef DISABLE_ALL_PWM
 #define DISABLE_THERMOMETER_PWM
 #define DISABLE_PARTY_PWM
@@ -89,11 +89,11 @@ float volts,realVolts = 0;
 # define THERMOMETER_STATE 0
 # define PARTY_STATE 1
 # define DRAIN_STATE 2
-int gameState = THERMOMETER_STATE;
+int gameState = DRAIN_STATE;
 
 //Current related variables
 int ampsAdc = 0;
-float ampsAdcAvg[NUM_TEAMS];
+float ampsAdcAvg[NUM_TEAMS] = { 0, 0 };
 const float ampsBase[NUM_TEAMS] = { 508, 510 };  // measurement with zero current
 const float rawAmpsReadingAt3A[NUM_TEAMS] = { 481, 483 };
 const float ampsScale[NUM_TEAMS] = {
@@ -217,7 +217,7 @@ void enterPartyState() {
 }
 
 int partyAnimation() {
-  #define SUSTAINED_VICTORY_THRESHOLD 19.0
+  #define SUSTAINED_VICTORY_THRESHOLD 21.0
   #define FLUFFING_THRESHOLD 26
   partyAnimationWinner();
   partyAnimationLoser();
@@ -235,15 +235,17 @@ int partyAnimationWinner() {
   static unsigned long time_for_next_frame = 0;
   // turn on at least one halogen sink so sudden drop in load doesn't overpower capacitor
   const int frames[][NUM_COLUMNS] = {
+    { 1, 0, 0, 0, 0 },
     { 1, 1, 0, 0, 0 },
     { 0, 1, 1, 0, 0 },
     { 0, 0, 1, 1, 0 },
     { 0, 0, 0, 1, 1 },
-    { 1, 0, 0, 0, 1 } };
+    { 0, 0, 0, 0, 1 },
+    { 0, 0, 0, 0, 0 } };
   // advance to (or initialize) the next frame when necessary
   if( time >= time_for_next_frame ) {
-    const int fast_interval=50;  // at MAX_VOLTS
-    const int slow_interval=500;  // at SUSTAINED_VICTORY_THRESHOLD
+    const int fast_interval=25;  // at MAX_VOLTS
+    const int slow_interval=100;  // at SUSTAINED_VICTORY_THRESHOLD
     millis_until_next_frame =  // linear interpolation
       ( fast_interval *
           (     volts - SUSTAINED_VICTORY_THRESHOLD ) +
@@ -307,7 +309,11 @@ int drainAnimation() {
 #endif
   for( i=0; i<NUM_LEDS; i++ )
     ledState[i] = frames[frame_index][i] ? STATE_ON : STATE_OFF;
-  return voltish < DRAINED_THRESHOLD ? THERMOMETER_STATE : DRAIN_STATE;
+  if( voltish < DRAINED_THRESHOLD ) {
+    ampsAdcAvg[0] = ampsAdcAvg[1] = 0;  // forget recent efforts
+    return THERMOMETER_STATE;
+  }
+  return DRAIN_STATE;
 }
 
 
