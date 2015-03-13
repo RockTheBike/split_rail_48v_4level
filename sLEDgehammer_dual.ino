@@ -63,7 +63,7 @@ const int ledPins[NUM_LEDS] = {  3,4,5,6,7, 8,  9,10,11,12,A5, 13  };
 int ledState[NUM_LEDS] = {
   STATE_OFF};
 
-#define DISABLE_THERMOMETER_PWM
+//#define DISABLE_THERMOMETER_PWM
 #ifdef DISABLE_ALL_PWM
 #define DISABLE_THERMOMETER_PWM
 #define DISABLE_PARTY_PWM
@@ -136,7 +136,11 @@ void setup() {
 
 void loop() {
   time = millis();
-  getVolts();
+  static unsigned long next_volts_reading = 0;
+  if( time > next_volts_reading ) {
+    getVolts();
+    next_volts_reading = time + 500;
+  }
   doSafety();
   updateTeamEfforts();
   realVolts = volts; // save realVolts for printDisplay function
