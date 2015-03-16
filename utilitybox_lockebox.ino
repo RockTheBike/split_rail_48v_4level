@@ -26,8 +26,9 @@
  * 2.5 - JS => create branch sledge for ten-line sLEDgehammer pedalpower lightshow reactor
  * 2.6 - MPS => create branch solarliving for sLEDgehammer for Solar Living Center
  * 2.7 - MPS => create branch dual for sLEDgehammer for Solar Living Center
+ * 2.8 - MPS => create branch lockebox for dual utility box for Locke Elementary with Turtle Vision
 */
-char versionStr[] = "Single-Rail 24 volt dualing sLEDgehammer ver. 2.7 branch:dual";
+char versionStr[] = "Single-Rail 24 volt dual utility box ver. 2.8 branch:lockebox";
 
 // PINS
 // NEVER USE 13 FOR A RELAY:
