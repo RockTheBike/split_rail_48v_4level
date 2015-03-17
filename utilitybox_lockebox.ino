@@ -30,6 +30,8 @@
 */
 char versionStr[] = "Single-Rail 24 volt dual utility box ver. 2.8 branch:lockebox";
 
+#define BOX_ID 0
+
 // PINS
 // NEVER USE 13 FOR A RELAY:
 // Some bootloaders flash pin 13; that could arc a relay or damage equipment
@@ -39,11 +41,13 @@ char versionStr[] = "Single-Rail 24 volt dual utility box ver. 2.8 branch:lockeb
 
 
 #define VOLTPIN A0 // Voltage Sensor Pin
-const int AMPSPINS[NUM_TEAMS] = { A3, A2 };  // Current Sensor Pins
+const int PIN_FOR_BIKE_CURRENT[NUM_TEAMS] = { A3, A2 };  // Current Sensor Pins for bikes
+const int PIN_FOR_INVERTER_CURRENT = A5;  // Current Sensor Pins for inverter
 
 #define AVG_CYCLES 50 // average measured values over this many samples
 #define LONG_AVG_CYCLES 10000  // "long" average (eg team effort) measured values over this many samples (running a bit above 1kHz)
 #define DISPLAY_INTERVAL 500 // when auto-display is on, display every this many milli-seconds
+#define UPDATE_INTERVAL 500 // update watcher every this many milli-seconds
 #define BLINK_PERIOD 600
 #define FAST_BLINK_PERIOD 150
 
@@ -65,22 +69,33 @@ int voltsAdc = 0;
 float voltsAdcAvg = 0;
 float volts = 0;
 
-//Current related variables
+// Current-related variables (in Amps unless raw ADC reading)
 int ampsAdc = 0;
-float ampsAdcAvg[NUM_TEAMS] = { 0, 0 };
-const float ampsBase[NUM_TEAMS] = { 508, 510 };  // measurement with zero current
-const float rawAmpsReadingAt3A[NUM_TEAMS] = { 481, 483 };
-const float ampsScale[NUM_TEAMS] = {
-  3 / ( rawAmpsReadingAt3A[0] - ampsBase[0] ),
-  3 / ( rawAmpsReadingAt3A[1] - ampsBase[1] ) };
+const float reading_for_bike_at_0A[NUM_TEAMS] = { 508, 510 };  // TODO:  calibrate
+const float reading_for_bike_at_3A[NUM_TEAMS] = { 481, 483 };  // TODO:  calibrate
+const float amp_scale_for_bike[NUM_TEAMS] = {
+  3 / ( reading_for_bike_at_3A[0] - reading_for_bike_at_0A[0] ),
+  3 / ( reading_for_bike_at_3A[1] - reading_for_bike_at_0A[1] ) };
+const float reading_for_inverter_at_0A = 508;  // TODO:  calibrate
+const float reading_for_inverter_at_3A = 481;  // TODO:  calibrate
+const float amp_scale_for_inverter = 3 / ( reading_for_inverter_at_3A - reading_for_inverter_at_0A );
+float current_for_team[NUM_TEAMS];
+float current_for_inverter;
 
-// timing variables for various processes: led updates, print, blink, etc
+// (Instantaneous) Power-related variables (in Watts)
+float power_for_team[NUM_TEAMS];
+float power_out;
+
+// (Accumulated) Energy-related variables (in Joules)
+float energy_for_team[NUM_TEAMS] = { 0, 0 };
+float energy_out = 0;
+
+// timing variables for various processes: print, blink, etc
 unsigned long time = 0;
-#define DISPLAY_TIME
-#ifdef DISPLAY_TIME
+unsigned long prev_time = 0;  // time of previous loop and its measurement
 unsigned long loopcount = 0;
-#endif
 unsigned long timeDisplay = 0;
+unsigned long timeUpdate = 0;
 
 // var for looping through arrays
 int i = 0;
@@ -98,18 +113,23 @@ void setup() {
 
 void loop() {
   time = millis();
+  if( ! prev_time )  prev_time = time;  // special case for first loop
   getVolts();
   doSafety();
   updateTeamEfforts();
+  updateInverterUsage();
 
   if(time - timeDisplay > DISPLAY_INTERVAL){
     if(DEBUG) printDisplay();
     timeDisplay = time;
   }
+  if(time - timeUpdate > UPDATE_INTERVAL){
+    updateWatcher();
+    timeUpdate = time;
+  }
 
-#ifdef DISPLAY_TIME
   loopcount++;
-#endif
+  prev_time = time;
 }
 
 
@@ -136,13 +156,21 @@ void doSafety() {
 }
 
 
-// keep a decaying average of each team's aperage;
-// use the ratio to determine who's winning
+// keep a decaying average of each team's amperage
 void updateTeamEfforts() {
   for( i=0; i<NUM_TEAMS; i++ ) {
-    ampsAdc = ( analogRead(AMPSPINS[i]) - ampsBase[i] ) * ampsScale[i];
-    ampsAdcAvg[i] = long_average(ampsAdc, ampsAdcAvg[i]);
+    ampsAdc = ( analogRead(PIN_FOR_BIKE_CURRENT[i]) - reading_for_bike_at_0A[i] ) * amp_scale_for_bike[i];
+    current_for_team[i] = long_average(ampsAdc, current_for_team[i]);
+    power_for_team[i] = current_for_team[i] * volts;
+    energy_for_team[i] += power_for_team[i] * (time-prev_time)/1000;
   }
+}
+
+void updateInverterUsage() {
+  ampsAdc = ( analogRead(PIN_FOR_INVERTER_CURRENT) - reading_for_inverter_at_0A ) * amp_scale_for_inverter;
+  current_for_inverter = long_average(ampsAdc, current_for_inverter);
+  power_out = current_for_inverter * volts;
+  energy_out += power_out * (time-prev_time)/1000;
 }
 
 void getVolts(){
@@ -169,7 +197,6 @@ float adc2volts(float adc){
 
 
 void printDisplay(){
-#ifdef DISPLAY_TIME
   Serial.print( loopcount );
   Serial.print( "loops " );
   Serial.print( time/1000/60 );
@@ -182,7 +209,6 @@ void printDisplay(){
   Serial.print( "Hz " );
 #endif
   Serial.print( ' ' );
-#endif
   Serial.print(volts);
   Serial.print("v ");
   Serial.print("   relayState: ");
@@ -190,16 +216,55 @@ void printDisplay(){
   Serial.print("  efforts:");
 #ifdef DISPLAY_RAW_CURRENTS
   Serial.print("[");
-  Serial.print( analogRead(AMPSPINS[0]) );
+  Serial.print( analogRead(PIN_FOR_BIKE_CURRENT[0]) );
   Serial.print("]");
 #endif
-  Serial.print(ampsAdcAvg[0]);
+  Serial.print(current_for_team[0]);
   Serial.print( ',' );
-  Serial.print(ampsAdcAvg[1]);
+  Serial.print(current_for_team[1]);
 #ifdef DISPLAY_RAW_CURRENTS
   Serial.print("[");
-  Serial.print( analogRead(AMPSPINS[1]) );
+  Serial.print( analogRead(PIN_FOR_BIKE_CURRENT[1]) );
   Serial.print("]");
 #endif
   Serial.println();
+}
+
+void updateWatcher() {
+#if NUM_TEAMS != 2
+#error This function assumes we have exactly two teams
+#endif
+  Serial.print( "{\"BOX_ID\":" );
+  Serial.print( BOX_ID );
+  Serial.print( ",\"VOLTS\":" );
+  Serial.print( volts );
+  Serial.print( ",\"BIKES\":[" );
+  for( i=0; i<NUM_TEAMS; i++ ) {
+    Serial.print( "{\"AMPS\":" );
+    Serial.print( current_for_team[i] );
+    Serial.print( ",\"WATTS\":" );
+    Serial.print( power_for_team[i] );
+    Serial.print( ",\"ENERGY\":" );
+    Serial.print( energy_for_team[i] );
+    Serial.print( "}" );
+    if( i != NUM_TEAMS-1 )
+      Serial.print( "," );
+  }
+  Serial.print( "],\"WATTS_IN\":" );
+  Serial.print( power_for_team[0] + power_for_team[1] );
+  Serial.print( ",\"WATTS_OUT\":" );
+  Serial.print( power_out );
+  Serial.print( ",\"ENERGY_IN\":" );  // was TOTAL_IN
+  // we store consistently in Watt-sec; have to display in Watt-hr
+  Serial.print( ( energy_for_team[0] + energy_for_team[1] ) / 60 );
+  Serial.print( ",\"ENERGY_OUT\":" );  // was TOTAL_OUT
+  // we store consistently in Watt-sec; have to display in Watt-hr
+  Serial.print( energy_out / 60 );
+  Serial.print( ",\"SAMPLES\":" );
+  Serial.print( loopcount );
+  Serial.print( ",\"REL_TIME\":" );
+  Serial.print( time - timeUpdate );
+  Serial.print( ",\"ARDUINO_TIME\":" );
+  Serial.print( time );
+  Serial.println( "}" );
 }
