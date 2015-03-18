@@ -56,8 +56,8 @@ const int PIN_FOR_INVERTER_CURRENT = A5;  // Current Sensor Pins for inverter
 #define STATE_BLINKFAST 3
 #define STATE_ON 2
 
-#define MAX_VOLTS 27.0
-#define RECOVERY_VOLTS 26.0
+#define MAX_VOLTS 18.0
+#define RECOVERY_VOLTS 15.5
 int relayState = STATE_OFF;
 
 #define VOLTCOEFF 13.179  // larger number interprets as lower voltage
