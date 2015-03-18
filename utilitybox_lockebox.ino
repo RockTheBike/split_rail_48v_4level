@@ -60,9 +60,6 @@ const int PIN_FOR_INVERTER_CURRENT = A5;  // Current Sensor Pins for inverter
 #define RECOVERY_VOLTS 26.0
 int relayState = STATE_OFF;
 
-#define DANGER_VOLTS 27.4
-int dangerState = STATE_OFF;
-
 #define VOLTCOEFF 13.179  // larger number interprets as lower voltage
 
 int voltsAdc = 0;
@@ -149,11 +146,6 @@ void doSafety() {
     if (DEBUG) Serial.println("RELAY CLOSED");
   }
 
-  if (volts > DANGER_VOLTS){
-    dangerState = STATE_ON;
-  } else {
-    dangerState = STATE_OFF;
-  }
 }
 
 
