@@ -46,8 +46,8 @@ const int PIN_FOR_INVERTER_CURRENT = A5;  // Current Sensor Pins for inverter
 
 #define AVG_CYCLES 50 // average measured values over this many samples
 #define LONG_AVG_CYCLES 10000  // "long" average (eg team effort) measured values over this many samples (running a bit above 1kHz)
-#define DISPLAY_INTERVAL 500 // when auto-display is on, display every this many milli-seconds
-#define UPDATE_INTERVAL 500 // update watcher every this many milli-seconds
+#define DISPLAY_INTERVAL 1000 // when auto-display is on, display every this many milli-seconds
+#define UPDATE_INTERVAL 1000 // update watcher every this many milli-seconds
 #define BLINK_PERIOD 600
 #define FAST_BLINK_PERIOD 150
 
@@ -71,14 +71,15 @@ float volts = 0;
 
 // Current-related variables (in Amps unless raw ADC reading)
 int ampsAdc = 0;
-const float reading_for_bike_at_0A[NUM_TEAMS] = { 508, 510 };  // TODO:  calibrate
-const float reading_for_bike_at_3A[NUM_TEAMS] = { 481, 483 };  // TODO:  calibrate
+const float reading_for_bike_at_0A[NUM_TEAMS] = { 511, 510 };
+const float reading_for_bike_at_3A[NUM_TEAMS] = { 483, 484 };
 const float amp_scale_for_bike[NUM_TEAMS] = {
   3 / ( reading_for_bike_at_3A[0] - reading_for_bike_at_0A[0] ),
   3 / ( reading_for_bike_at_3A[1] - reading_for_bike_at_0A[1] ) };
-const float reading_for_inverter_at_0A = 508;  // TODO:  calibrate
-const float reading_for_inverter_at_3A = 481;  // TODO:  calibrate
-const float amp_scale_for_inverter = 3 / ( reading_for_inverter_at_3A - reading_for_inverter_at_0A );
+const float reading_for_inverter_at_0A = 511;
+const float reading_for_inverter_at_sample = 537;
+const float sample_current = 3.6;
+const float amp_scale_for_inverter = sample_current / ( reading_for_inverter_at_sample - reading_for_inverter_at_0A );
 float current_for_team[NUM_TEAMS];
 float current_for_inverter;
 
@@ -214,6 +215,7 @@ void printDisplay(){
   Serial.print("   relayState: ");
   Serial.print(relayState);
   Serial.print("  efforts:");
+#define DISPLAY_RAW_CURRENTS
 #ifdef DISPLAY_RAW_CURRENTS
   Serial.print("[");
   Serial.print( analogRead(PIN_FOR_BIKE_CURRENT[0]) );
@@ -225,6 +227,13 @@ void printDisplay(){
 #ifdef DISPLAY_RAW_CURRENTS
   Serial.print("[");
   Serial.print( analogRead(PIN_FOR_BIKE_CURRENT[1]) );
+  Serial.print("]");
+#endif
+  Serial.print(" output:");
+  Serial.print(current_for_inverter);
+#ifdef DISPLAY_RAW_CURRENTS
+  Serial.print("[");
+  Serial.print( analogRead(PIN_FOR_INVERTER_CURRENT) );
   Serial.print("]");
 #endif
   Serial.println();
