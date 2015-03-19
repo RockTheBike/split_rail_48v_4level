@@ -32,6 +32,8 @@ char versionStr[] = "Single-Rail 24 volt dual utility box ver. 2.8 branch:lockeb
 
 #define BOX_ID 0
 
+#include <Adafruit_NeoPixel.h>
+
 // PINS
 // NEVER USE 13 FOR A RELAY:
 // Some bootloaders flash pin 13; that could arc a relay or damage equipment
@@ -61,6 +63,16 @@ const int PIN_FOR_INVERTER_CURRENT = A5;  // Current Sensor Pins for inverter
 int relayState = STATE_OFF;
 
 #define VOLTCOEFF 13.179  // larger number interprets as lower voltage
+
+#define NUM_LEDSTRIPS 2
+#define LEDSTRIP_LENGTH 12
+const int ledstrip_pins[NUM_LEDSTRIPS] = { 9, 10 };
+
+Adafruit_NeoPixel ledstrips[NUM_LEDSTRIPS] = {
+  Adafruit_NeoPixel(  // lower
+    LEDSTRIP_LENGTH, ledstrip_pins[0], NEO_GRB|NEO_KHZ800 ),
+  Adafruit_NeoPixel(  // upper
+    LEDSTRIP_LENGTH, ledstrip_pins[1], NEO_GRB|NEO_KHZ800 ) };
 
 int voltsAdc = 0;
 float voltsAdcAvg = 0;
@@ -106,6 +118,11 @@ void setup() {
   pinMode(RELAYPIN, OUTPUT);
   digitalWrite(RELAYPIN,LOW);
 
+  for( i=0; i<NUM_LEDSTRIPS; i++ ) {
+    ledstrips[i].begin();
+    ledstrips[i].show();
+  }
+
   timeDisplay = millis();
 }
 
@@ -116,6 +133,7 @@ void loop() {
   doSafety();
   updateTeamEfforts();
   updateInverterUsage();
+  showLedstrip();
 
   if(time - timeDisplay > DISPLAY_INTERVAL){
     if(DEBUG) printDisplay();
@@ -164,6 +182,25 @@ void updateInverterUsage() {
   current_for_inverter = long_average(ampsAdc, current_for_inverter);
   power_out = current_for_inverter * volts;
   energy_out += power_out * (time-prev_time)/1000;
+}
+
+void showLedstrip() {
+  // TODO:  show useful info instead of a (hopefully not too
+  // distracting) silly little light show
+  static const uint32_t colors[][NUM_LEDSTRIPS] = {
+    { Adafruit_NeoPixel::Color(255,0,0),
+      Adafruit_NeoPixel::Color(0,255,255) },
+    { Adafruit_NeoPixel::Color(0,255,0),
+      Adafruit_NeoPixel::Color(255,0,255) },
+    { Adafruit_NeoPixel::Color(0,0,255),
+      Adafruit_NeoPixel::Color(255,255,0) } };
+  for( int ledstrip=0; ledstrip<NUM_LEDSTRIPS; ledstrip++ ) {
+    ledstrips[ledstrip].setBrightness( 32 );
+    for( int pixel=0; pixel<LEDSTRIP_LENGTH; pixel++ )
+      ledstrips[ledstrip].setPixelColor( pixel,
+        colors[ (time/1000)%3 ][ ledstrip ] );
+    ledstrips[ledstrip].show();
+  }
 }
 
 void getVolts(){
