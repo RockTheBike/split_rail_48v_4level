@@ -272,9 +272,9 @@ void updateWatcher() {
 #if NUM_TEAMS != 2
 #error This function assumes we have exactly two teams
 #endif
-  Serial.print( "{\"BOX_ID\":" );
+  Serial.print( "{\"BOX_ID\":\"LOCKE_" );
   Serial.print( BOX_ID );
-  Serial.print( ",\"VOLTS\":" );
+  Serial.print( "\",\"VOLTS\":" );
   Serial.print( volts );
   Serial.print( ",\"BIKES\":[" );
   for( i=0; i<NUM_TEAMS; i++ ) {
@@ -282,7 +282,7 @@ void updateWatcher() {
     Serial.print( current_for_team[i] );
     Serial.print( ",\"WATTS\":" );
     Serial.print( power_for_team[i] );
-    Serial.print( ",\"ENERGY\":" );
+    Serial.print( ",\"JOULES\":" );
     Serial.print( energy_for_team[i] );
     Serial.print( "}" );
     if( i != NUM_TEAMS-1 )
@@ -292,12 +292,12 @@ void updateWatcher() {
   Serial.print( power_for_team[0] + power_for_team[1] );
   Serial.print( ",\"WATTS_OUT\":" );
   Serial.print( power_out );
-  Serial.print( ",\"ENERGY_IN\":" );  // was TOTAL_IN
-  // we store consistently in Watt-sec; have to display in Watt-hr
-  Serial.print( ( energy_for_team[0] + energy_for_team[1] ) / 60 );
-  Serial.print( ",\"ENERGY_OUT\":" );  // was TOTAL_OUT
-  // we store consistently in Watt-sec; have to display in Watt-hr
-  Serial.print( energy_out / 60 );
+  Serial.print( ",\"WATTHOURS_IN\":" ); 
+  // we store consistently in Watt-sec (joule); have to display in Watt-hr
+  Serial.print( ( energy_for_team[0] + energy_for_team[1] ) / 3600 );
+  Serial.print( ",\"WATTHOURS_OUT\":" );  
+  // we store consistently in Watt-sec (joule); have to display in Watt-hr
+  Serial.print( energy_out / 3600 );
   Serial.print( ",\"SAMPLES\":" );
   Serial.print( loopcount );
   Serial.print( ",\"REL_TIME\":" );
