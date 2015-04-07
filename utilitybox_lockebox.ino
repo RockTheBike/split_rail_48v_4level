@@ -30,7 +30,7 @@
 */
 char versionStr[] = "Single-Rail 24 volt dual utility box ver. 2.8 branch:lockebox";
 
-#define BOX_ID 0
+#define BOX_ID 1
 
 #include <Adafruit_NeoPixel.h>
 
