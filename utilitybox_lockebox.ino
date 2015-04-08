@@ -28,11 +28,15 @@
  * 2.7 - MPS => create branch dual for sLEDgehammer for Solar Living Center
  * 2.8 - MPS => create branch lockebox for dual utility box for Locke Elementary with Turtle Vision
 */
-char versionStr[] = "Single-Rail 24 volt dual utility box ver. 2.8 branch:lockebox";
+
+// need to put char definition below #include of Adafruit_NeoPixel so arduino IDE doesn't get confused by Adafruit_NeoPixel type
+#define VERSION "Single-Rail 24 volt dual utility box ver. 2.8 branch:lockebox"
 
 #define BOX_ID 1
 
 #include <Adafruit_NeoPixel.h>
+
+char versionStr[] = VERSION;
 
 // PINS
 // NEVER USE 13 FOR A RELAY:
@@ -66,6 +70,10 @@ int relayState = STATE_OFF;
 
 #define NUM_LEDSTRIPS 2
 #define LEDSTRIP_LENGTH 12
+// barely turning the cranks produces 10W (not much more than noise)
+#define MIN_POWER 10
+// a sprinting athlete should just barely reach the top
+#define MAX_POWER 1000
 const int ledstrip_pins[NUM_LEDSTRIPS] = { 9, 10 };
 
 Adafruit_NeoPixel ledstrips[NUM_LEDSTRIPS] = {
@@ -184,23 +192,69 @@ void updateInverterUsage() {
   energy_out += power_out * (time-prev_time)/1000;
 }
 
+// For now, we show power from each bike on each ledstrip
+// TODO:  show more info:
+// - show power from each bike on bike-side halves of the ledstrips
+// - show power to inverter on non-bike-side half of one ledstrip
+// - show power to/from battery on other half
 void showLedstrip() {
-  // TODO:  show useful info instead of a (hopefully not too
-  // distracting) silly little light show
-  static const uint32_t colors[][NUM_LEDSTRIPS] = {
-    { Adafruit_NeoPixel::Color(255,0,0),
-      Adafruit_NeoPixel::Color(0,255,255) },
-    { Adafruit_NeoPixel::Color(0,255,0),
-      Adafruit_NeoPixel::Color(255,0,255) },
-    { Adafruit_NeoPixel::Color(0,0,255),
-      Adafruit_NeoPixel::Color(255,255,0) } };
-  for( int ledstrip=0; ledstrip<NUM_LEDSTRIPS; ledstrip++ ) {
-    ledstrips[ledstrip].setBrightness( 32 );
-    for( int pixel=0; pixel<LEDSTRIP_LENGTH; pixel++ )
-      ledstrips[ledstrip].setPixelColor( pixel,
-        colors[ (time/1000)%3 ][ ledstrip ] );
-    ledstrips[ledstrip].show();
+  for( int team=0; team<NUM_TEAMS; team++ ) {
+    float ledstolight = logPowerRamp( power_for_team[team] );
+    if( ledstolight > LEDSTRIP_LENGTH ) ledstolight=LEDSTRIP_LENGTH;
+    unsigned char hue = ledstolight/LEDSTRIP_LENGTH * 170.0;
+    uint32_t color = Wheel( ledstrips[team], hue<1?1:hue );
+    static const uint32_t dark = Adafruit_NeoPixel::Color(0,0,0);
+    doFractionalRamp( ledstrips[team], 0, LEDSTRIP_LENGTH, ledstolight, color, dark );
+    ledstrips[team].show();
   }
+}
+
+void doFractionalRamp( Adafruit_NeoPixel &strip, uint8_t offset, uint8_t num_pixels, float ledstolight, uint32_t firstColor, uint32_t secondColor ){
+	for( int i=0,pixel=offset; i<=num_pixels; i++,pixel++ ){
+		uint32_t color;
+		if( i<(int)ledstolight )  // definitely firstColor
+		    color = firstColor;
+		else if( i>(int)ledstolight )  // definitely secondColor
+		    color = secondColor;
+		else  // mix the two proportionally
+		    color = weighted_average_of_colors( firstColor, secondColor, ledstolight-(int)ledstolight);
+		strip.setPixelColor( pixel, color );
+	}
+}
+// hacky utility to merge colors
+// fraction=0 => colorA; fraction=1 => colorB; fraction=0.5 => mix
+// TODO:  but something's backward in the code or my brain! 
+// (let's hope Adafruit_NeoPixel doesn't change its encoding of colors)
+uint32_t weighted_average_of_colors( uint32_t colorA, uint32_t colorB,
+  float fraction ){
+	// TODO:  weight brightness to look more linear to the human eye
+	uint8_t RA = (colorA>>16) & 0xff;
+	uint8_t GA = (colorA>>8 ) & 0xff;
+	uint8_t BA = (colorA>>0 ) & 0xff;
+	uint8_t RB = (colorB>>16) & 0xff;
+	uint8_t GB = (colorB>>8 ) & 0xff;
+	uint8_t BB = (colorB>>0 ) & 0xff;
+	return Adafruit_NeoPixel::Color(
+	  RA*fraction + RB*(1-fraction),
+	  GA*fraction + GB*(1-fraction),
+	  BA*fraction + BB*(1-fraction) );
+}
+// Input a value 0 to 255 to get a color value.
+// The colours are a transition r - g - b - back to r.
+uint32_t Wheel(const Adafruit_NeoPixel& strip, byte WheelPos) {
+	if (WheelPos < 85) {
+		return strip.Color(255 - WheelPos * 3, WheelPos * 3, 0);
+	} else if (WheelPos < 170) {
+		WheelPos -= 85;
+		return strip.Color(0, 255 - WheelPos * 3, WheelPos * 3);
+	} else {
+		WheelPos -= 170;
+		return strip.Color(WheelPos * 3, 0, 255 - WheelPos * 3);
+	}
+}
+float logPowerRamp( float p ) {
+	float l = log(p/MIN_POWER)*LEDSTRIP_LENGTH/log(MAX_POWER/MIN_POWER);
+	return l<0 ? 0 : l;
 }
 
 void getVolts(){
