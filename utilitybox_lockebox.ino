@@ -62,6 +62,10 @@ const int PIN_FOR_INVERTER_CURRENT = A5;  // Current Sensor Pins for inverter
 #define STATE_BLINKFAST 3
 #define STATE_ON 2
 
+// a range for a happy inverter (samlex PST-60S-12A 600 Watt Sine Wave Inverter)
+#define MIN_INVERTER_VOLTS 11.0  // it whines with a load at 10.88V
+#define MAX_INVERTER_VOLTS 16.5  // it whines without load at 17.0V; should test with load
+
 #define MAX_VOLTS 18.0
 #define RECOVERY_VOLTS 15.5
 int relayState = STATE_OFF;
@@ -198,13 +202,21 @@ void updateInverterUsage() {
 // - show power to inverter on non-bike-side half of one ledstrip
 // - show power to/from battery on other half
 void showLedstrip() {
+  static const uint32_t red = Adafruit_NeoPixel::Color(255,0,0);
+  static const uint32_t dark = Adafruit_NeoPixel::Color(0,0,0);
   for( int team=0; team<NUM_TEAMS; team++ ) {
-    float ledstolight = logPowerRamp( power_for_team[team] );
-    if( ledstolight > LEDSTRIP_LENGTH ) ledstolight=LEDSTRIP_LENGTH;
-    unsigned char hue = ledstolight/LEDSTRIP_LENGTH * 170.0;
-    uint32_t color = Wheel( ledstrips[team], hue<1?1:hue );
-    static const uint32_t dark = Adafruit_NeoPixel::Color(0,0,0);
-    doFractionalRamp( ledstrips[team], 0, LEDSTRIP_LENGTH, ledstolight, color, dark );
+    uint32_t blink_color = millis() % 500 > 250 ? red : dark;
+    if( volts < MIN_INVERTER_VOLTS || volts > MAX_INVERTER_VOLTS ) {
+      // TODO:  different animations for under- vs over-voltage
+      for( int i=0; i<ledstrips[team].numPixels(); i++ )
+        ledstrips[team].setPixelColor( i, blink_color );
+    } else {  // happy range
+      float ledstolight = logPowerRamp( power_for_team[team] );
+      if( ledstolight > LEDSTRIP_LENGTH ) ledstolight=LEDSTRIP_LENGTH;
+      unsigned char hue = ledstolight/LEDSTRIP_LENGTH * 170.0;
+      uint32_t color = Wheel( ledstrips[team], hue<1?1:hue );
+      doFractionalRamp( ledstrips[team], 0, LEDSTRIP_LENGTH, ledstolight, color, dark );
+    }
     ledstrips[team].show();
   }
 }
