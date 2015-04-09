@@ -202,15 +202,17 @@ void updateInverterUsage() {
 // - show power to inverter on non-bike-side half of one ledstrip
 // - show power to/from battery on other half
 void showLedstrip() {
-  static const uint32_t red = Adafruit_NeoPixel::Color(255,0,0);
-  static const uint32_t dark = Adafruit_NeoPixel::Color(0,0,0);
   for( int team=0; team<NUM_TEAMS; team++ ) {
-    uint32_t blink_color = millis() % 500 > 250 ? red : dark;
-    if( volts < MIN_INVERTER_VOLTS || volts > MAX_INVERTER_VOLTS ) {
-      // TODO:  different animations for under- vs over-voltage
-      for( int i=0; i<ledstrips[team].numPixels(); i++ )
-        ledstrips[team].setPixelColor( i, blink_color );
+    if( volts > MAX_INVERTER_VOLTS ) {
+      // animation of climbing sawtooth: "////"
+      uint8_t red = millis() % 1000 * 256/1000;
+      setStrip( ledstrips[team], red, 0, 0 );
+    } else if( volts < MIN_INVERTER_VOLTS ) {
+      // animation of fading sawtooth:  "\\\\"
+      uint8_t red = 255 - millis() % 1000 * 256/1000;
+      setStrip( ledstrips[team], red, 0, 0 );
     } else {  // happy range
+      static const uint32_t dark = Adafruit_NeoPixel::Color(0,0,0);
       float ledstolight = logPowerRamp( power_for_team[team] );
       if( ledstolight > LEDSTRIP_LENGTH ) ledstolight=LEDSTRIP_LENGTH;
       unsigned char hue = ledstolight/LEDSTRIP_LENGTH * 170.0;
@@ -264,6 +266,12 @@ uint32_t Wheel(const Adafruit_NeoPixel& strip, byte WheelPos) {
 		return strip.Color(WheelPos * 3, 0, 255 - WheelPos * 3);
 	}
 }
+void setStrip(Adafruit_NeoPixel& strip, uint8_t r, uint8_t g, uint8_t b){
+	for (uint16_t i = 0; i < strip.numPixels(); i++) {
+		strip.setPixelColor( i, r,g,b );
+	}
+}
+
 float logPowerRamp( float p ) {
 	float l = log(p/MIN_POWER)*LEDSTRIP_LENGTH/log(MAX_POWER/MIN_POWER);
 	return l<0 ? 0 : l;
