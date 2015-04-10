@@ -51,7 +51,6 @@ const int PIN_FOR_BIKE_CURRENT[NUM_TEAMS] = { A3, A2 };  // Current Sensor Pins 
 const int PIN_FOR_INVERTER_CURRENT = A5;  // Current Sensor Pins for inverter
 
 #define AVG_CYCLES 50 // average measured values over this many samples
-#define LONG_AVG_CYCLES 10000  // "long" average (eg team effort) measured values over this many samples (running a bit above 1kHz)
 #define DISPLAY_INTERVAL 1000 // when auto-display is on, display every this many milli-seconds
 #define UPDATE_INTERVAL 1000 // update watcher every this many milli-seconds
 #define BLINK_PERIOD 600
@@ -183,7 +182,7 @@ void doSafety() {
 void updateTeamEfforts() {
   for( i=0; i<NUM_TEAMS; i++ ) {
     ampsAdc = ( analogRead(PIN_FOR_BIKE_CURRENT[i]) - reading_for_bike_at_0A[i] ) * amp_scale_for_bike[i];
-    current_for_team[i] = long_average(ampsAdc, current_for_team[i]);
+    current_for_team[i] = average(ampsAdc, current_for_team[i]);
     power_for_team[i] = current_for_team[i] * volts;
     energy_for_team[i] += power_for_team[i] * (time-prev_time)/1000;
   }
@@ -191,7 +190,7 @@ void updateTeamEfforts() {
 
 void updateInverterUsage() {
   ampsAdc = ( analogRead(PIN_FOR_INVERTER_CURRENT) - reading_for_inverter_at_0A ) * amp_scale_for_inverter;
-  current_for_inverter = long_average(ampsAdc, current_for_inverter);
+  current_for_inverter = average(ampsAdc, current_for_inverter);
   power_out = current_for_inverter * volts;
   energy_out += power_out * (time-prev_time)/1000;
 }
@@ -287,12 +286,6 @@ float average(float val, float avg){
   if(avg == 0)
     avg = val;
   return (val + (avg * (AVG_CYCLES - 1))) / AVG_CYCLES;
-}
-
-float long_average(float val, float avg){
-  if(avg == 0)
-    avg = val;
-  return (val + (avg * (LONG_AVG_CYCLES - 1))) / LONG_AVG_CYCLES;
 }
 
 float adc2volts(float adc){
