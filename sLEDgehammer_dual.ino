@@ -177,8 +177,8 @@ void playGame() {
 // and reach PWM 100% at its higher neighbor's threshold_for_column_led
 // tic const float threshold_for_column_led[] = { 12.5, 14.5, 16.5, 18.5, 20.5, 22.0};
 static const float threshold_for_column_led[] = { 17.0, 18.5, 19.2, 20.0, 21.0, 22.0};
-static const float VICTORY_THRESHOLD = threshold_for_column_led[5] + 0.5;
-#define DRAINED_THRESHOLD 16.2 // this should be just below the first LED voltage
+static const float VICTORY_THRESHOLD = threshold_for_column_led[5] + 1.0;
+#define DRAINED_THRESHOLD 15.0 // this should be just below the first LED voltage
 #define LED_HYSTERESIS 0.2 // voltage changing by this much needed to change LED panel states
 
 int thermometerAnimation() {
