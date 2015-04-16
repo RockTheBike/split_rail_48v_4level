@@ -175,7 +175,8 @@ void playGame() {
 
 // a column should start to glow at its threshold_for_column_led
 // and reach PWM 100% at its higher neighbor's threshold_for_column_led
-static const float threshold_for_column_led[] = { 12.5, 14.5, 16.5, 18.5, 20.5, 22.0};
+// tic const float threshold_for_column_led[] = { 12.5, 14.5, 16.5, 18.5, 20.5, 22.0};
+static const float threshold_for_column_led[] = { 17.0, 18.5, 19.2, 20.0, 21.0, 22.0};
 static const float VICTORY_THRESHOLD = threshold_for_column_led[5] + 1.5;
 
 int thermometerAnimation() {
