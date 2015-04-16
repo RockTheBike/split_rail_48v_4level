@@ -64,9 +64,7 @@ const int ledPins[NUM_LEDS] = {  3,4,5,6,7, 8,  9,10,11,12,A5, 13  };
 int ledState[NUM_LEDS] = {
   STATE_OFF};
 
-#define DISABLE_THERMOMETER_PWM
 #ifdef DISABLE_ALL_PWM
-#define DISABLE_THERMOMETER_PWM
 #define DISABLE_PARTY_PWM
 #define DISABLE_DRAIN_PWM
 #endif
@@ -187,15 +185,7 @@ int thermometerAnimation() {
     for( int col=0; col<NUM_COLUMNS; col++ )
       ledState[LED_FOR_TEAM_COLUMN[team][col]] =
         creditedVolts < threshold_for_column_led[col] ? STATE_OFF :
-#ifdef DISABLE_THERMOMETER_PWM
         STATE_ON;
-#else
-        creditedVolts > threshold_for_column_led[col+1] ? STATE_ON :
-        rand() < RAND_MAX *
-          (                   creditedVolts - threshold_for_column_led[col] ) /
-          ( threshold_for_column_led[col+1] - threshold_for_column_led[col] ) ?
-          STATE_ON : STATE_OFF;
-#endif
     ledState[LED_FOR_TEAM_SINKS[team]] = (voltish > threshold_for_column_led[5]) ? STATE_ON : STATE_OFF; // make halogens come on
   }
   // TODO:  if( no_one's_given_energy_in_5s ) return DRAIN_STATE;
