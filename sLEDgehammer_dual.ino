@@ -179,15 +179,16 @@ void playGame() {
 static const float threshold_for_column_led[] = { 17.0, 18.5, 19.2, 20.0, 21.0, 22.0};
 static const float VICTORY_THRESHOLD = threshold_for_column_led[5] + 1.5;
 #define DRAINED_THRESHOLD 16.2 // this should be just below the first LED voltage
+#define LED_HYSTERESIS 0.2 // voltage changing by this much needed to change LED panel states
 
 int thermometerAnimation() {
   // we control the column LEDs with some combo of voltage and accumulated team effort
   for( int team=0; team<NUM_TEAMS; team++ ) {
     float creditedVolts = creditVolts( team );
-    for( int col=0; col<NUM_COLUMNS; col++ )
-      ledState[LED_FOR_TEAM_COLUMN[team][col]] =
-        creditedVolts < threshold_for_column_led[col] ? STATE_OFF :
-        STATE_ON;
+    for( int col=0; col<NUM_COLUMNS; col++ ) {
+      if (creditedVolts > threshold_for_column_led[col]) ledState[LED_FOR_TEAM_COLUMN[team][col]] = STATE_ON;
+      if (creditedVolts < threshold_for_column_led[col] - LED_HYSTERESIS) ledState[LED_FOR_TEAM_COLUMN[team][col]] = STATE_OFF;
+      }
     ledState[LED_FOR_TEAM_SINKS[team]] = (voltish > threshold_for_column_led[5]) ? STATE_ON : STATE_OFF; // make halogens come on
   }
   // TODO:  if( no_one's_given_energy_in_5s ) return DRAIN_STATE;
