@@ -34,6 +34,7 @@ char versionStr[] = "Single-Rail 24 volt dualing sLEDgehammer ver. 2.7 branch:du
 // Some bootloaders flash pin 13; that could arc a relay or damage equipment
 // see http://arduino.cc/en/Hacking/Bootloader
 #define RELAYPIN 2 // relay cutoff output pin
+#define EASYPIN A4 // switch deciding regular or "easy mode" (has pullup resistor)
 #define NUM_TEAMS 2
 #define NUM_COLUMNS 5
 
@@ -197,7 +198,7 @@ int thermometerAnimation() {
     ledState[LED_FOR_TEAM_SINKS[team]] = STATE_OFF;
   }
   // TODO:  if( no_one's_given_energy_in_5s ) return DRAIN_STATE;
-  if( voltish > VICTORY_THRESHOLD ) {
+  if (( voltish > VICTORY_THRESHOLD ) || ((voltish > threshold_for_column_led[4]) && (!digitalRead(EASYPIN)))) {
     enterPartyState();
     return PARTY_STATE;
   }
