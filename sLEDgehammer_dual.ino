@@ -72,7 +72,7 @@ int ledState[NUM_LEDS] = {
 #endif
 
 #define MAX_VOLTS 27.0
-#define RECOVERY_VOLTS 26.0
+#define RECOVERY_VOLTS 20.0
 int relayState = STATE_OFF;
 
 #define DANGER_VOLTS 27.4
