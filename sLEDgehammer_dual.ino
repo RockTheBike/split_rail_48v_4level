@@ -178,6 +178,7 @@ void playGame() {
 // tic const float threshold_for_column_led[] = { 12.5, 14.5, 16.5, 18.5, 20.5, 22.0};
 static const float threshold_for_column_led[] = { 17.0, 18.5, 19.2, 20.0, 21.0, 22.0};
 static const float VICTORY_THRESHOLD = threshold_for_column_led[5] + 1.5;
+#define DRAINED_THRESHOLD 16.2 // this should be just below the first LED voltage
 
 int thermometerAnimation() {
   // we control the column LEDs with some combo of voltage and accumulated team effort
@@ -272,7 +273,6 @@ int partyAnimationLoser() {
 
 
 int drainAnimation() {
-  #define DRAINED_THRESHOLD 12.0
   static int millis_until_next_frame;
   static int old_frame_index;
   static int new_frame_index = 0;
