@@ -38,6 +38,19 @@ char versionStr[] = "Single-Rail 24 volt dualing sLEDgehammer ver. 2.7 branch:du
 #define NUM_TEAMS 2
 #define NUM_COLUMNS 5
 
+// a column should turn on at its threshold_for_column_led
+static const float threshold_for_column_led[] = { 17.0, 18.5, 19.2, 20.0, 21.0, 22.0};
+#define DRAINED_THRESHOLD 15.0 // this should be just below the first LED voltage
+#define LED_HYSTERESIS 0.2 // voltage changing by this much needed to change LED panel states
+
+#define HARD_VICTORY_THRESHOLD threshold_for_column_led[5] + 1.0;
+#define HARD_SUSTAINED_VICTORY_THRESHOLD 21.0
+#define HARD_FLUFFING_THRESHOLD 26
+
+#define EASY_VICTORY_THRESHOLD threshold_for_column_led[4];
+#define EASY_SUSTAINED_VICTORY_THRESHOLD 19.5
+#define EASY_FLUFFING_THRESHOLD 21
+
 // indexing into ledPins
 const int LED_FOR_TEAM_SINKS[NUM_TEAMS] = { 5, 11 };  // ie halogen energy sinks
 const int LED_FOR_TEAM_COLUMN[NUM_TEAMS][NUM_COLUMNS] = {
@@ -78,6 +91,8 @@ int dangerState = STATE_OFF;
 
 int blinkState = 0;
 int fastBlinkState = 0;
+
+float victory_threshold, sustained_victory_threshold, fluffing_threshold;
 
 #define VOLTCOEFF 13.179  // larger number interprets as lower voltage
 
@@ -140,6 +155,16 @@ void loop() {
   updateTeamEfforts();
   realVolts = volts; // save realVolts for printDisplay function
 
+  if (!digitalRead(EASYPIN)) { // EASY MODE
+    victory_threshold = EASY_VICTORY_THRESHOLD;
+    sustained_victory_threshold = EASY_SUSTAINED_VICTORY_THRESHOLD;
+    fluffing_threshold = EASY_FLUFFING_THRESHOLD;
+  } else { // HARD MODE
+    victory_threshold = HARD_VICTORY_THRESHOLD;
+    sustained_victory_threshold = HARD_SUSTAINED_VICTORY_THRESHOLD;
+    fluffing_threshold = HARD_FLUFFING_THRESHOLD;
+  }
+
   if(!dangerState) {
     playGame();
   }
@@ -172,13 +197,6 @@ void playGame() {
   }
 }
 
-
-// a column should turn on at its threshold_for_column_led
-static const float threshold_for_column_led[] = { 17.0, 18.5, 19.2, 20.0, 21.0, 22.0};
-static const float VICTORY_THRESHOLD = threshold_for_column_led[5] + 1.0;
-#define DRAINED_THRESHOLD 15.0 // this should be just below the first LED voltage
-#define LED_HYSTERESIS 0.2 // voltage changing by this much needed to change LED panel states
-
 int thermometerAnimation() {
   // we control the column LEDs with some combo of voltage and accumulated team effort
   for( int team=0; team<NUM_TEAMS; team++ ) {
@@ -190,7 +208,7 @@ int thermometerAnimation() {
     ledState[LED_FOR_TEAM_SINKS[team]] = (voltish > threshold_for_column_led[5]) ? STATE_ON : STATE_OFF; // make halogens come on
   }
   // TODO:  if( no_one's_given_energy_in_5s ) return DRAIN_STATE;
-  if (( voltish > VICTORY_THRESHOLD ) || ((voltish > threshold_for_column_led[4]) && (!digitalRead(EASYPIN)))) {
+  if ( voltish > victory_threshold ) {
     enterPartyState();
     return PARTY_STATE;
   }
@@ -210,15 +228,13 @@ void enterPartyState() {
 }
 
 int partyAnimation() {
-  #define SUSTAINED_VICTORY_THRESHOLD 21.0
-  #define FLUFFING_THRESHOLD 26
   partyAnimationWinner();
   partyAnimationLoser();
   // add load to make winner work to sustain party mode
   ledState[LED_FOR_TEAM_SINKS[won_team]] = STATE_ON;
   // turn on loser's halogen if we fear voltage that would trip relay
-  ledState[LED_FOR_TEAM_SINKS[!won_team]] = volts > FLUFFING_THRESHOLD ? STATE_ON : STATE_OFF;
-  return voltish > SUSTAINED_VICTORY_THRESHOLD ? PARTY_STATE : DRAIN_STATE;
+  ledState[LED_FOR_TEAM_SINKS[!won_team]] = volts > fluffing_threshold ? STATE_ON : STATE_OFF;
+  return voltish > sustained_victory_threshold ? PARTY_STATE : DRAIN_STATE;
 }
 
 int partyAnimationWinner() {
@@ -238,13 +254,13 @@ int partyAnimationWinner() {
   // advance to (or initialize) the next frame when necessary
   if( time >= time_for_next_frame ) {
     const int fast_interval=25;  // at MAX_VOLTS
-    const int slow_interval=100;  // at SUSTAINED_VICTORY_THRESHOLD
+    const int slow_interval=100;  // at sustained_victory_threshold
     millis_until_next_frame =  // linear interpolation
       ( fast_interval *
-          (     volts - SUSTAINED_VICTORY_THRESHOLD ) +
+          (     volts - sustained_victory_threshold ) +
         slow_interval *
           ( MAX_VOLTS - volts ) ) /
-      (     MAX_VOLTS - SUSTAINED_VICTORY_THRESHOLD     );
+      (     MAX_VOLTS - sustained_victory_threshold     );
     time_for_next_frame =
       ( time_for_next_frame ? time_for_next_frame : time ) + millis_until_next_frame;
     old_frame_index = new_frame_index;
