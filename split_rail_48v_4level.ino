@@ -30,7 +30,7 @@ char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility B
 
 #include <Adafruit_NeoPixel.h>
 #define LEDSTRIPPIN 13 // what pin the data input to the LED strip is connected to
-#define NUM_LEDS 13 // how many LEDs on the strip
+#define NUM_LEDS 22 // how many LEDs on the strip
 Adafruit_NeoPixel ledStrip = Adafruit_NeoPixel(NUM_LEDS, LEDSTRIPPIN, NEO_GRB + NEO_KHZ800);
 #define ledBrightness 127 // brightness of addressible LEDs (0 to 255)
 
@@ -41,7 +41,7 @@ Adafruit_NeoPixel ledStrip = Adafruit_NeoPixel(NUM_LEDS, LEDSTRIPPIN, NEO_GRB + 
 
 // levels at which each LED turns green (normally all red unless below first voltage)
 const float ledLevels[NUM_LEDS+1] = {
-  12.00000,13.84615,15.69231,17.53846,19.38462,21.23077,23.07692,24.92308,26.76923,28.61538,30.46154,32.30769,34.15385,36.00000 };
+  10,  9, 10, 11.2, 12, 12.5, 13, 13.5, 14, 14.5, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27 };
 //red  1grn   2grn   3grn   4grn   5grn   6grn   white
 
 #define AVG_CYCLES 50 // average measured values over this many samples
@@ -55,11 +55,11 @@ const float ledLevels[NUM_LEDS+1] = {
 #define STATE_BLINKFAST 3
 #define STATE_ON 2
 
-#define MAX_VOLTS 37.8  // when to open the safety relay
-#define RECOVERY_VOLTS 37.0  // when to close the safety relay
+#define MAX_VOLTS 28  // when to open the safety relay
+#define RECOVERY_VOLTS 25  // when to close the safety relay
 int relayState = STATE_OFF;
 
-#define DANGER_VOLTS 38.0  // when to fast-flash white (slow-flash above last ledLevels)
+#define DANGER_VOLTS 30.0  // when to fast-flash white (slow-flash above last ledLevels)
 int dangerState = STATE_OFF;
 
 int blinkState = 0;
