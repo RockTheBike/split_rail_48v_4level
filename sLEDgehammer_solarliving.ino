@@ -394,7 +394,7 @@ void doSafety() {
 }
 
 
-// keep a decaying average of each team's aperage;
+// keep a decaying average of each team's amperage;
 // use the ratio to determine who's winning
 void updateTeamEfforts() {
   for( i=0; i<NUM_TEAMS; i++ ) {
