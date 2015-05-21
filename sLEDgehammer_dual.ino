@@ -26,15 +26,16 @@
  * 2.5 - JS => create branch sledge for ten-line sLEDgehammer pedalpower lightshow reactor
  * 2.6 - MPS => create branch solarliving for sLEDgehammer for Solar Living Center
  * 2.7 - MPS => create branch dual for sLEDgehammer for Solar Living Center
+ * 2.8 - JS => add back in the easy/hard knob (why did we take it out?)
 */
-char versionStr[] = "Single-Rail 24 volt dualing sLEDgehammer ver. 2.7 branch:dual";
+char versionStr[] = "Single-Rail 24 volt dualing sLEDgehammer ver. 2.8 branch:dual";
 
 // PINS
 // NEVER USE 13 FOR A RELAY:
 // Some bootloaders flash pin 13; that could arc a relay or damage equipment
 // see http://arduino.cc/en/Hacking/Bootloader
 #define RELAYPIN 2 // relay cutoff output pin
-#define EASYPIN A4 // switch deciding regular or "easy mode" (has pullup resistor)
+#define KNOBPIN A4 // knob to fake voltage higher when turned counterclockwise
 #define NUM_TEAMS 2
 #define NUM_COLUMNS 5
 
@@ -102,7 +103,6 @@ int winning_team;
 
 // timing variables for various processes: led updates, print, blink, etc
 unsigned long time = 0;
-#define DISPLAY_TIME
 #ifdef DISPLAY_TIME
 unsigned long loopcount = 0;
 #endif
@@ -138,7 +138,6 @@ void loop() {
   getVolts();
   doSafety();
   updateTeamEfforts();
-  realVolts = volts; // save realVolts for printDisplay function
 
   if(!dangerState) {
     playGame();
@@ -190,7 +189,7 @@ int thermometerAnimation() {
     ledState[LED_FOR_TEAM_SINKS[team]] = (voltish > threshold_for_column_led[5]) ? STATE_ON : STATE_OFF; // make halogens come on
   }
   // TODO:  if( no_one's_given_energy_in_5s ) return DRAIN_STATE;
-  if (( voltish > VICTORY_THRESHOLD ) || ((voltish > threshold_for_column_led[4]) && (!digitalRead(EASYPIN)))) {
+  if ( voltish > VICTORY_THRESHOLD ) {
     enterPartyState();
     return PARTY_STATE;
   }
@@ -217,7 +216,7 @@ int partyAnimation() {
   // add load to make winner work to sustain party mode
   ledState[LED_FOR_TEAM_SINKS[won_team]] = STATE_ON;
   // turn on loser's halogen if we fear voltage that would trip relay
-  ledState[LED_FOR_TEAM_SINKS[!won_team]] = volts > FLUFFING_THRESHOLD ? STATE_ON : STATE_OFF;
+  ledState[LED_FOR_TEAM_SINKS[!won_team]] = voltish > FLUFFING_THRESHOLD ? STATE_ON : STATE_OFF;
   return voltish > SUSTAINED_VICTORY_THRESHOLD ? PARTY_STATE : DRAIN_STATE;
 }
 
@@ -241,9 +240,9 @@ int partyAnimationWinner() {
     const int slow_interval=100;  // at SUSTAINED_VICTORY_THRESHOLD
     millis_until_next_frame =  // linear interpolation
       ( fast_interval *
-          (     volts - SUSTAINED_VICTORY_THRESHOLD ) +
+          (     voltish - SUSTAINED_VICTORY_THRESHOLD ) +
         slow_interval *
-          ( MAX_VOLTS - volts ) ) /
+          ( MAX_VOLTS - voltish ) ) /
       (     MAX_VOLTS - SUSTAINED_VICTORY_THRESHOLD     );
     time_for_next_frame =
       ( time_for_next_frame ? time_for_next_frame : time ) + millis_until_next_frame;
@@ -397,7 +396,9 @@ void getVolts(){
   voltsAdcAvg = average(voltsAdc, voltsAdcAvg);
   volts = adc2volts(voltsAdcAvg);
 
-  voltish = volts;
+  int knobAdc = 1013 - analogRead(KNOBPIN); // clockwise 5K knob wired between ground and Vcc
+  if (knobAdc < 0) knobAdc = 0; // values 0-10 count as zero
+  voltish = volts * (1 + (float)knobAdc / 2026); // 2026 means EASY multiplies volts by 1.5
 }
 
 float average(float val, float avg){
@@ -438,16 +439,15 @@ void printDisplay(){
   Serial.print( ':' );
   Serial.print( time/1000%60 );  // TODO "%02d"
   Serial.print( ' ' );
-#define DISPLAY_REFRESH_RATE
 #ifdef DISPLAY_REFRESH_RATE
   Serial.print( loopcount * 1000 / time );
   Serial.print( "Hz " );
 #endif
   Serial.print( ' ' );
 #endif
-  Serial.print(realVolts);
-  Serial.print("v ");
   Serial.print(volts);
+  Serial.print("v ");
+  Serial.print(voltish);
   Serial.print("fv ");
   Serial.print("   relayState: ");
   Serial.print(relayState);
