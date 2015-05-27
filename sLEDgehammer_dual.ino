@@ -131,6 +131,9 @@ void setup() {
     digitalWrite(ledPins[i],LOW);
   }
   timeDisplay = millis();
+  getVolts();
+  getVolts();
+  printDisplay();
 }
 
 void loop() {
