@@ -186,7 +186,7 @@ int thermometerAnimation() {
       if (creditedVolts > threshold_for_column_led[col]) ledState[LED_FOR_TEAM_COLUMN[team][col]] = STATE_ON;
       if (creditedVolts < threshold_for_column_led[col] - LED_HYSTERESIS) ledState[LED_FOR_TEAM_COLUMN[team][col]] = STATE_OFF;
       }
-    ledState[LED_FOR_TEAM_SINKS[team]] = (voltish > threshold_for_column_led[5]) ? STATE_ON : STATE_OFF; // make halogens come on
+    ledState[LED_FOR_TEAM_SINKS[team]] = (volts > threshold_for_column_led[5]) ? STATE_ON : STATE_OFF; // make halogens come on
   }
   // TODO:  if( no_one's_given_energy_in_5s ) return DRAIN_STATE;
   if ( voltish > VICTORY_THRESHOLD ) {
@@ -216,7 +216,7 @@ int partyAnimation() {
   // add load to make winner work to sustain party mode
   ledState[LED_FOR_TEAM_SINKS[won_team]] = STATE_ON;
   // turn on loser's halogen if we fear voltage that would trip relay
-  ledState[LED_FOR_TEAM_SINKS[!won_team]] = voltish > FLUFFING_THRESHOLD ? STATE_ON : STATE_OFF;
+  ledState[LED_FOR_TEAM_SINKS[!won_team]] = volts > FLUFFING_THRESHOLD ? STATE_ON : STATE_OFF;
   return voltish > SUSTAINED_VICTORY_THRESHOLD ? PARTY_STATE : DRAIN_STATE;
 }
 
