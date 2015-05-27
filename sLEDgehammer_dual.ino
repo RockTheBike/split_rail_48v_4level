@@ -35,6 +35,7 @@ char versionStr[] = "Single-Rail 24 volt dualing sLEDgehammer ver. 2.8 branch:du
 // Some bootloaders flash pin 13; that could arc a relay or damage equipment
 // see http://arduino.cc/en/Hacking/Bootloader
 #define RELAYPIN 2 // relay cutoff output pin
+#define VOLT_KNEE 15 // only fake voltage above this point
 #define KNOBPIN A4 // knob to fake voltage higher when turned counterclockwise
 #define NUM_TEAMS 2
 #define NUM_COLUMNS 5
@@ -399,9 +400,13 @@ void getVolts(){
   voltsAdcAvg = average(voltsAdc, voltsAdcAvg);
   volts = adc2volts(voltsAdcAvg);
 
-  int knobAdc = 1013 - analogRead(KNOBPIN); // clockwise 5K knob wired between ground and Vcc
-  if (knobAdc < 0) knobAdc = 0; // values 0-10 count as zero
-  voltish = volts * (1 + (float)knobAdc / 2026); // 2026 means EASY multiplies volts by 1.5
+  if (volts > VOLT_KNEE) { // we only multiply the volts above VOLT_KNEE
+    int knobAdc = 1013 - analogRead(KNOBPIN); // clockwise 5K knob wired between ground and Vcc
+    if (knobAdc < 0) knobAdc = 0; // values 0-10 count as zero
+    voltish = VOLT_KNEE + (volts - VOLT_KNEE) * (1 + (float)knobAdc / 2026); // 2026 means EASY multiplies volts by 1.5
+  } else {
+    voltish = volts; // below VOLT_KNEE there is no adjustment
+  }
 }
 
 float average(float val, float avg){
