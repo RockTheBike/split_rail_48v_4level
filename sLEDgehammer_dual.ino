@@ -1,3 +1,4 @@
+#define DISPLAY_RAW_CURRENTS
 #define BAUD_RATE 57600
 #define DEBUG 1 // set to 1 to enable serial information printing
 /**** Pedalometer / sLEDgehammer
@@ -96,8 +97,8 @@ int gameState = DRAIN_STATE;
 int ampsAdc = 0;
 float ampsAdcAvg[NUM_TEAMS] = { 0, 0 };
 float energyAvg[NUM_TEAMS] = { 0, 0 };
-const float ampsBase[NUM_TEAMS] = { 508, 510 };  // measurement with zero current
-const float rawAmpsReadingAt3A[NUM_TEAMS] = { 481, 483 };
+const float ampsBase[NUM_TEAMS] = { 508, 508 };  // measurement with zero current
+const float rawAmpsReadingAt3A[NUM_TEAMS] = { 483, 483 };
 const float ampsScale[NUM_TEAMS] = {
   3 / ( rawAmpsReadingAt3A[0] - ampsBase[0] ),
   3 / ( rawAmpsReadingAt3A[1] - ampsBase[1] ) };
