@@ -95,6 +95,7 @@ int gameState = DRAIN_STATE;
 //Current related variables
 int ampsAdc = 0;
 float ampsAdcAvg[NUM_TEAMS] = { 0, 0 };
+float energyAvg[NUM_TEAMS] = { 0, 0 };
 const float ampsBase[NUM_TEAMS] = { 508, 510 };  // measurement with zero current
 const float rawAmpsReadingAt3A[NUM_TEAMS] = { 481, 483 };
 const float ampsScale[NUM_TEAMS] = {
@@ -306,6 +307,7 @@ int drainAnimation() {
     ledState[i] = frames[frame_index][i] ? STATE_ON : STATE_OFF;
   if( voltish < DRAINED_THRESHOLD ) {
     ampsAdcAvg[0] = ampsAdcAvg[1] = 0;  // forget recent efforts
+    energyAvg[0] = energyAvg[1] = 0;  // forget recent efforts
     return THERMOMETER_STATE;
   }
   return DRAIN_STATE;
@@ -390,9 +392,10 @@ void doSafety() {
 void updateTeamEfforts() {
   for( i=0; i<NUM_TEAMS; i++ ) {
     ampsAdc = ( analogRead(AMPSPINS[i]) - ampsBase[i] ) * ampsScale[i];
+    energyAvg[i] += volts * ampsAdc; // tally up energy supplied by each team
     ampsAdcAvg[i] = long_average(ampsAdc, ampsAdcAvg[i]);
   }
-  winning_team = ampsAdcAvg[0] < ampsAdcAvg[1];
+  winning_team = energyAvg[0] < energyAvg[1];
 }
 
 void getVolts(){
