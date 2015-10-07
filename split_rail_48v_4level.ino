@@ -28,7 +28,7 @@ char versionStr[] = "Split-Rail DIVIDA 48 volt 1bike 1speaker Pedal Power Utilit
 
 // PINS
 #define DIVIDAPIN 13 // transistor pulls virtual ground toward minusrail
-#define DIVIDA_VOLTPIN A2 // IC3 pinhole used for a voltage divider sensor
+#define DIVIDA_VOLTPIN A1 // MINUSRAIL used for a voltage divider sensor
 #define DIVIDA_HYSTERESIS 1.0 // how many volts above halfway before divida activated
 
 #define RELAYPIN 2 // relay cutoff output pin // NEVER USE 13 FOR A RELAY
