@@ -27,9 +27,9 @@
 char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility Box ver. 2.4 branch:decida";
 
 // PINS
-#define GROUNDPLUS 9 // HIGH on this pin shorts pedaller's plus to ground
+#define GROUNDPLUS 4 // HIGH on this pin shorts pedaller's plus to ground
 #define GROUNDPLUSACTIVATE true
-#define GROUNDMINUS 10 // LOW on this pin shorts pedaller's minus to ground
+#define GROUNDMINUS 7 // LOW on this pin shorts pedaller's minus to ground
 #define GROUNDMINUSACTIVATE false
 #define RELAYPIN 2 // relay cutoff output pin // NEVER USE 13 FOR A RELAY
 #define VOLTPIN A0 // Voltage Sensor Pin
