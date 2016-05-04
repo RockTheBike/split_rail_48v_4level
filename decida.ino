@@ -1,29 +1,4 @@
 #define BAUD_RATE 57600
-/**** Single-rail Pedalometer
- * Arduino code to run the Dance with Lance Arbduino
- * ver. 1.14
- * Written by:
- * Thomas Spellman <thomas@thosmos.com>
- * Jake <jake@spaz.org>
- * Paul@rockthebike.com
- *
- * Notes:
- * 1.6 - moved version to the top, started protocol of commenting every change in file and in Git commit
- * 1.7 - jake 6-21-2012 disable minusalert until minus rail is pedaled at least once (minusAlertEnable and startupMinusVoltage)
- * 1.8 -- FF added annoying light sequence for when relay fails or customer bypasses protection circuitry.+
- * 1.9 - TS => cleaned up a bit, added state constants, turn off lowest 2 levels when level 3 and above
- * 1.10 - TS => cleaned up levels / pins variables, changed to a "LEDs" naming scheme
- * 1.11 - TS => does a very slow 4digits watts average, fixed the high blink
- * 1.12 - TS => printWatts uses D4Avg instead of watts, 300 baud
- * 1.13 - TS => D4Avg fix, 2400 baud
- * 1.14 - FF => Added CalcWattHours function, changing the Sign's data to Watt Hours, instead of Watts, in time for BMF VII
- * 1.15 - JS => started adding buck converter stuff
- * 2.1 - JS => changed to split_rail_48v_4level, adding PWM for LED pedalometer, turning off buck converter and sign output
- * 2.15 - JS => fixed so white LEDs are solid before starting to blink at 50v, tuned relay voltages
- * 2.2 - JS => create branch 1b1i for onebike-oneinverter which buck converts up to 60V down to 12V for inverter
- * 2.3 - JS => create branch decida for split-rail system with automatic rail selection for pedallers (see decida.xcf)
- * 2.4 - JS => rip out a bunch of stuff that we haven't used in a long time
-*/
 char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility Box ver. 2.4 branch:decida";
 
 // PINS
