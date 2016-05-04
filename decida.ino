@@ -48,13 +48,14 @@ int decision = PLUSPEDAL; // which rail should pedalpower go into?
 #define DECIDA_SWITCHTIME 500 // minimum time between switching rails to pedal
 
 #define MINIMUM_PLUSRAIL 22 // below this voltage, pedalling only goes to plusrail
+#define MINIMUM_FETVOLTAGE 8 // below this PLUSRAIL voltage, OPENPEDAL only
 #define MAX_PLUSRAIL 27.0
-#define MAX_MINUSRAIL -24.3
+#define MAX_MINUSRAIL 24.3
 #define RELAY_HYSTERESIS 4.0 // how many volts of hysteresis to have
 int relayState = STATE_OFF;
 
 #define DANGER_PLUSRAIL 28.0 // 10*2.7=27 volt cap bank
-#define DANGER_MINUSRAIL -25.3 // 9*2.7=24.3 volt cap bank
+#define DANGER_MINUSRAIL 25.3 // 9*2.7=24.3 volt cap bank
 int dangerState = STATE_OFF;
 
 int blinkState = 0;
@@ -68,7 +69,9 @@ float volts = 0; // averaged A0 voltage PLUSRAIL
 
 int minusAdc = 0; // for measuring A1 voltage
 float minusAvg = 0; // for measuring A1 voltage
-float minus = 0; // averaged A1 voltage MINUSRAIL
+float minusRail = 0; // averaged voltage MINUSRAIL
+
+float plusRail = 0; // averaged voltage PLUSRAIL
 
 //Current related variables
 int ampsAdc = 0;
@@ -131,11 +134,11 @@ void loop() {
 }
 
 void doDecide() {
-  float plusCentage = volts / MAX_PLUSRAIL; // how full is plusrail?
-  float minusCentage = minus / MAX_MINUSRAIL; // how full is minusrail?
+  float plusCentage = plusRail / MAX_PLUSRAIL; // how full is plusrail?
+  float minusCentage = minusRail / MAX_MINUSRAIL; // how full is minusrail?
 
   decision = PLUSPEDAL; // default to plusrail
-  if ((volts > MINIMUM_PLUSRAIL) && (plusCentage > minusCentage)) {
+  if ((plusRail > MINIMUM_PLUSRAIL) && (plusCentage > minusCentage)) {
     decision = MINUSPEDAL; // pedal the minus rail now
   }
   if ((plusCentage > RAILFULL) && (minusCentage > RAILFULL)) {
@@ -211,17 +214,17 @@ void doBuck() {
 }
 */
 void doSafety() {
-  if ((volts > MAX_PLUSRAIL) || (minus < MAX_MINUSRAIL)){
+  if ((plusRail > MAX_PLUSRAIL) || (minusRail > MAX_MINUSRAIL)){
     digitalWrite(RELAYPIN, HIGH);
     relayState = STATE_ON;
   }
 
-  if (relayState == STATE_ON && (volts < MAX_PLUSRAIL - RELAY_HYSTERESIS) && (minus > MAX_MINUSRAIL + RELAY_HYSTERESIS)){
+  if (relayState == STATE_ON && (plusRail < MAX_PLUSRAIL - RELAY_HYSTERESIS) && (minusRail < MAX_MINUSRAIL - RELAY_HYSTERESIS)){
     digitalWrite(RELAYPIN, LOW);
     relayState = STATE_OFF;
   }
 
-  if ((volts > DANGER_PLUSRAIL) || (minus < DANGER_MINUSRAIL)){
+  if ((plusRail > DANGER_PLUSRAIL) || (minusRail > DANGER_MINUSRAIL)){
     dangerState = STATE_ON;
   }
   else {
@@ -254,10 +257,8 @@ void doBlink(){
 
 void doLeds(){
 
-  float totalVolts = volts - minus; // total system voltage
-
   for(i = 0; i < NUM_LEDS; i++) {
-    if(totalVolts >= ledLevels[i]){
+    if(volts >= ledLevels[i]){
       ledState[i]=STATE_ON;
     }
     else
@@ -265,12 +266,12 @@ void doLeds(){
   }
 
   // if voltage is below the lowest level, blink the lowest level
-  if (totalVolts < ledLevels[0]){
+  if (volts < ledLevels[0]){
     ledState[0]=STATE_BLINK;
   }
 
   // turn off first x levels if voltage is above 3rd level
-  if(totalVolts > ledLevels[1]){
+  if(volts > ledLevels[1]){
     ledState[0] = STATE_OFF;
 //    ledState[1] = STATE_OFF;
   }
@@ -281,7 +282,7 @@ void doLeds(){
     }
   }
 
-  if (totalVolts >= ledLevels[NUM_LEDS]) {// if at the top voltage level, blink last LEDS fast
+  if (volts >= ledLevels[NUM_LEDS]) {// if at the top voltage level, blink last LEDS fast
     ledState[NUM_LEDS-1] = STATE_BLINKFAST; // last set of LEDs
   }
 
@@ -326,7 +327,9 @@ void getVolts(){
 
   minusAdc = analogRead(MINUS_VOLTPIN);
   minusAvg = average(minusAdc, minusAvg);
-  minus = 5.0 - adc2volts(1023-minusAvg); // measuring the minus rail
+  minusRail = adc2volts(minusAvg); // measuring the minus rail
+
+  plusRail = volts - minusRail; // calculating the plus rail
 
   //  brightness = 255 - BRIGHTNESSBASE * (1.0 - (brightnessKnobFactor * (1023 - analogRead(knobpin))));  // the knob affects brightnes
 
@@ -347,9 +350,15 @@ float adc2volts(float adc){
 }
 
 void printDisplay(){
+  Serial.print("plusRail: ");
+  Serial.print(plusRail);
+  Serial.print("v   minusRail: ");
+  Serial.print(minusRail);
+  Serial.print("v   totalVolts: ");
   Serial.print(volts);
   Serial.print("v (");
-  Serial.println(analogRead(VOLTPIN));
+  Serial.print(analogRead(VOLTPIN));
+  Serial.println(")");
   //  Serial.print(", a: ");
   //  Serial.print(amps);
   //  Serial.print(", va: ");
