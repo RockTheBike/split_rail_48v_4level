@@ -17,7 +17,7 @@
  * 1.12 - TS => printWatts uses D4Avg instead of watts, 300 baud
  * 1.13 - TS => D4Avg fix, 2400 baud
  * 1.14 - FF => Added CalcWattHours function, changing the Sign's data to Watt Hours, instead of Watts, in time for BMF VII
- * 1.15 - JS => started adding buck converter stuff 
+ * 1.15 - JS => started adding buck converter stuff
  * 2.1 - JS => changed to split_rail_48v_4level, adding PWM for LED pedalometer, turning off buck converter and sign output
  * 2.15 - JS => fixed so white LEDs are solid before starting to blink at 50v, tuned relay voltages
  * 2.2 - JS => create branch 1b1i for onebike-oneinverter which buck converts up to 60V down to 12V for inverter
@@ -30,7 +30,7 @@ char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility B
 #define GROUNDPLUS 4 // HIGH on this pin shorts pedaller's plus to ground
 #define GROUNDPLUSACTIVATE true
 #define GROUNDMINUS 7 // LOW on this pin shorts pedaller's minus to ground
-#define GROUNDMINUSACTIVATE false
+#define GROUNDMINUSACTIVATE true
 #define RELAYPIN 2 // relay cutoff output pin // NEVER USE 13 FOR A RELAY
 #define VOLTPIN A0 // Voltage Sensor Pin
 #define MINUS_VOLTPIN A1 // this pin measures MINUSRAIL voltage
@@ -153,7 +153,7 @@ void loop() {
   //  if it's been at least 1/4 second since the last time we measured Watt Hours...
   /*  if (time - wattHourTimer >= 250) {
    calcWattHours();
-   wattHourTimer = time; // reset the integrator    
+   wattHourTimer = time; // reset the integrator
    }
   */
   doBlink();  // blink the LEDs
@@ -242,7 +242,7 @@ void doBuck() {
         }
       }
     }
-  } 
+  }
   if (volts < BUCK_CUTOUT) { // system voltage is too low for transistors
     digitalWrite(9,LOW); // turn off transistors
   }
@@ -261,7 +261,7 @@ void doSafety() {
 
   if ((volts > DANGER_PLUSRAIL) || (minus < DANGER_MINUSRAIL)){
     dangerState = STATE_ON;
-  } 
+  }
   else {
     dangerState = STATE_OFF;
   }
@@ -272,7 +272,7 @@ void doBlink(){
   if (((time - timeBlink) > BLINK_PERIOD) && blinkState == 1){
     blinkState = 0;
     timeBlink = time;
-  } 
+  }
   else if (((time - timeBlink) > BLINK_PERIOD) && blinkState == 0){
     blinkState = 1;
     timeBlink = time;
@@ -282,7 +282,7 @@ void doBlink(){
   if (((time - timeFastBlink) > FAST_BLINK_PERIOD) && fastBlinkState == 1){
     fastBlinkState = 0;
     timeFastBlink = time;
-  } 
+  }
   else if (((time - timeFastBlink) > FAST_BLINK_PERIOD) && fastBlinkState == 0){
     fastBlinkState = 1;
     timeFastBlink = time;
@@ -451,55 +451,55 @@ void setPwmFrequency(int pin, int divisor) {
   byte mode;
   if(pin == 5 || pin == 6 || pin == 9 || pin == 10) {
     switch(divisor) {
-    case 1: 
-      mode = 0x01; 
+    case 1:
+      mode = 0x01;
       break;
-    case 8: 
-      mode = 0x02; 
+    case 8:
+      mode = 0x02;
       break;
-    case 64: 
-      mode = 0x03; 
+    case 64:
+      mode = 0x03;
       break;
-    case 256: 
-      mode = 0x04; 
+    case 256:
+      mode = 0x04;
       break;
-    case 1024: 
-      mode = 0x05; 
+    case 1024:
+      mode = 0x05;
       break;
-    default: 
+    default:
       return;
     }
     if(pin == 5 || pin == 6) {
       TCCR0B = TCCR0B & 0b11111000 | mode;
-    } 
+    }
     else {
       TCCR1B = TCCR1B & 0b11111000 | mode;
     }
-  } 
+  }
   else if(pin == 3 || pin == 11) {
     switch(divisor) {
-    case 1: 
-      mode = 0x01; 
+    case 1:
+      mode = 0x01;
       break;
-    case 8: 
-      mode = 0x02; 
+    case 8:
+      mode = 0x02;
       break;
-    case 32: 
-      mode = 0x03; 
+    case 32:
+      mode = 0x03;
       break;
-    case 64: 
-      mode = 0x04; 
+    case 64:
+      mode = 0x04;
       break;
-    case 128: 
-      mode = 0x05; 
+    case 128:
+      mode = 0x05;
       break;
-    case 256: 
-      mode = 0x06; 
+    case 256:
+      mode = 0x06;
       break;
-    case 1024: 
-      mode = 0x7; 
+    case 1024:
+      mode = 0x7;
       break;
-    default: 
+    default:
       return;
     }
     TCCR2B = TCCR2B & 0b11111000 | mode;
