@@ -73,24 +73,12 @@ float minusRail = 0; // averaged voltage MINUSRAIL
 
 float plusRail = 0; // averaged voltage PLUSRAIL
 
-//Current related variables
-int ampsAdc = 0;
-float ampsAdcAvg = 0;
-float amps = 0;
-
-float watts = 0;
-float wattHours = 0;
-
 // timing variables for various processes: led updates, print, blink, etc
 unsigned long time = 0;
 unsigned long timeFastBlink = 0;
 unsigned long timeBlink = 0;
 unsigned long timeDisplay = 0;
-unsigned long wattHourTimer = 0;
 unsigned long lastDecided = 0;
-
-// var for looping through arrays
-int i = 0;
 
 void setup() {
   Serial.begin(BAUD_RATE);
@@ -101,16 +89,15 @@ void setup() {
   digitalWrite(RELAYPIN,LOW);
 
   // init LED pins
-  for(i = 0; i < NUM_LEDS; i++) {
+  for(int i = 0; i < NUM_LEDS; i++) {
     pinMode(ledPins[i],OUTPUT);
   }
 
   timeDisplay = millis();
-  // setPwmFrequency(3,1); // this sets the frequency of PWM on pins 3 and 11 to 31,250 Hz
-  setPwmFrequency(9,1); // this sets the frequency of PWM on pins 9 and 10 to 31,250 Hz
-  pinMode(GROUNDPLUS,OUTPUT); //  HIGH on this pin shorts pedaller's plus to ground
-  pinMode(GROUNDMINUS,OUTPUT); // LOW on this pin shorts pedaller's minus to ground
-} // GROUNDMINUS will default to LOW, which directs pedallers to plusrail which is good.
+  // setPwmFrequency(9,1); // set frequency of PWM on pins 9 and 10 to 31,250 Hz for buck
+  pinMode(GROUNDPLUS,OUTPUT);
+  pinMode(GROUNDMINUS,OUTPUT);
+}
 
 void loop() {
   time = millis();
@@ -125,8 +112,6 @@ void loop() {
   doLeds();
 
   if(time - timeDisplay > DISPLAY_INTERVAL){
-    // printWatts();
-    //    printWattHours();
     printDisplay();
     timeDisplay = time;
   }
@@ -257,7 +242,7 @@ void doBlink(){
 
 void doLeds(){
 
-  for(i = 0; i < NUM_LEDS; i++) {
+  for(int i = 0; i < NUM_LEDS; i++) {
     if(volts >= ledLevels[i]){
       ledState[i]=STATE_ON;
     }
@@ -277,7 +262,7 @@ void doLeds(){
   }
 
   if (dangerState){ // dangerState means one of the rails is too high
-    for(i = 0; i < NUM_LEDS; i++) {
+    for(int i = 0; i < NUM_LEDS; i++) {
       ledState[i] = STATE_BLINKFAST;
     }
   }
@@ -288,7 +273,7 @@ void doLeds(){
 
   // loop through each led and turn on/off or adjust PWM
 
-  for(i = 0; i < NUM_LEDS; i++) {
+  for(int i = 0; i < NUM_LEDS; i++) {
     if(ledState[i]==STATE_ON){
       //      digitalWrite(ledPins[i], HIGH);
       if (analogState[i] != brightness) analogWrite(ledPins[i], brightness); // don't analogWrite unnecessarily!
@@ -359,24 +344,10 @@ void printDisplay(){
   Serial.print("v (");
   Serial.print(analogRead(VOLTPIN));
   Serial.println(")");
-  //  Serial.print(", a: ");
-  //  Serial.print(amps);
-  //  Serial.print(", va: ");
-  //  Serial.print(watts);
   //  Serial.print(", voltsBuck: ");
   //  Serial.print(voltsBuck);
   //  Serial.print(", inverter: ");
   //  Serial.print(volts-voltsBuck);
-
-  //  Serial.print(", Levels ");
-  //  for(i = 0; i < NUM_LEDS; i++) {
-  //    Serial.print(i);
-  //    Serial.print(": ");
-  //    Serial.print(ledState[i]);
-  //    Serial.print(", ");
-  //  }
-  //  Serial.println("");
-  // Serial.println();
 }
 
 void setPwmFrequency(int pin, int divisor) {
