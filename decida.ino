@@ -9,8 +9,6 @@ char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility B
 #define RELAYPIN 2 // relay cutoff output pin // NEVER USE 13 FOR A RELAY
 #define VOLTPIN A0 // Voltage Sensor Pin
 #define MINUS_VOLTPIN A1 // this pin measures MINUSRAIL voltage
-#define AMPSPIN A3 // Current Sensor Pin
-#define KNOBPIN A2
 #define NUM_LEDS 4 // Number of LED outputs.
 const int ledPins[NUM_LEDS] = { // 24v LEDS POWERED BY PLUSRAIL
   3, 5, 6, 11}; // pin 9 and 10 are used by decida transistor banks
@@ -31,7 +29,6 @@ int analogState[NUM_LEDS] = {0}; // stores the last analogWrite() value for each
 #define AVG_CYCLES 50 // average measured values over this many samples
 #define DISPLAY_INTERVAL 2000 // when auto-display is on, display every this many milli-seconds
 #define LED_UPDATE_INTERVAL 1000
-#define D4_AVG_PERIOD 10000
 #define BLINK_PERIOD 600
 #define FAST_BLINK_PERIOD 150
 
@@ -40,7 +37,6 @@ int analogState[NUM_LEDS] = {0}; // stores the last analogWrite() value for each
 #define STATE_BLINKFAST 3
 #define STATE_ON 2
 
-int knobAdc = 0;
 int ledState[NUM_LEDS] = {STATE_OFF}; // on/off/blink/fastblink state of each led
 
 #define PLUSPEDAL 1
@@ -122,15 +118,6 @@ void loop() {
     doDecide(); // decide which rail needs pedallers more
     lastDecided = time; // reset time timeout
   }
-  //  getAmps();  // only if we have a current sensor
-  //  calcWatts(); // also adds in knob value for extra wattage, unless commented out
-
-  //  if it's been at least 1/4 second since the last time we measured Watt Hours...
-  /*  if (time - wattHourTimer >= 250) {
-   calcWattHours();
-   wattHourTimer = time; // reset the integrator
-   }
-  */
   doBlink();  // blink the LEDs
   doLeds();
 
@@ -332,12 +319,6 @@ void doLeds(){
 
 } // END doLeds()
 
-void getAmps(){
-  ampsAdc = analogRead(AMPSPIN);
-  ampsAdcAvg = average(ampsAdc, ampsAdcAvg);
-  amps = adc2amps(ampsAdcAvg);
-}
-
 void getVolts(){
   voltsAdc = analogRead(VOLTPIN);
   voltsAdcAvg = average(voltsAdc, voltsAdcAvg);
@@ -365,34 +346,6 @@ float adc2volts(float adc){
   return adc * (1 / VOLTCOEFF);
 }
 
-float adc2amps(float adc){
-  return (adc - 512) * 0.1220703125;
-}
-
-void calcWatts(){
-  watts = volts * amps;
-//  doKnob(); // only if we have a knob to look at
-//  watts += knobAdc / 2; // uncomment this line too
-}
-
-void calcWattHours(){
-  wattHours += (watts * ((time - wattHourTimer) / 1000.0) / 3600.0); // measure actual watt-hours
-  //wattHours +=  watts *     actual timeslice / in seconds / seconds per hour
-  // In the main loop, calcWattHours is being told to run every second.
-}
-
-void printWatts(){
-  Serial.print("w");
-  Serial.println(watts);
-}
-
-void printWattHours(){
-  Serial.print("w"); // tell the sign to print the following number
-  //  the sign will ignore printed decimal point and digits after it!
-  Serial.println(wattHours,1); // print just the number of watt-hours
-  //  Serial.println(wattHours*10,1); // for this you must put a decimal point onto the sign!
-}
-
 void printDisplay(){
   Serial.print(volts);
   Serial.print("v (");
@@ -415,11 +368,6 @@ void printDisplay(){
   //  }
   //  Serial.println("");
   // Serial.println();
-}
-
-void doKnob(){ // look in calcWatts() to see if this is commented out
-  knobAdc = analogRead(KNOBPIN) - 10; // make sure not to add if knob is off
-  if (knobAdc < 0) knobAdc = 0; // values 0-10 count as zero
 }
 
 void setPwmFrequency(int pin, int divisor) {
