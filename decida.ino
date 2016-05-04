@@ -122,12 +122,17 @@ void doDecide() {
   float plusCentage = plusRail / MAX_PLUSRAIL; // how full is plusrail?
   float minusCentage = minusRail / MAX_MINUSRAIL; // how full is minusrail?
 
-  decision = PLUSPEDAL; // default to plusrail
-  if ((plusRail > MINIMUM_PLUSRAIL) && (plusCentage > minusCentage)) {
-    decision = MINUSPEDAL; // pedal the minus rail now
-  }
-  if ((plusCentage > RAILFULL) && (minusCentage > RAILFULL)) {
-    decision = OPENPEDAL; // let pedalpower charge both rails
+  if (plusRail < MINIMUM_FETVOLTAGE) {
+    decision = OPENPEDAL; // don't try FETs without enough voltage to close them!
+    Serial.println("plusRail < MINIMUM_FETVOLTAGE  ");
+  } else {
+    decision = PLUSPEDAL; // default to plusrail
+    if ((plusRail > MINIMUM_PLUSRAIL) && (plusCentage > minusCentage)) {
+      decision = MINUSPEDAL; // pedal the minus rail now
+    }
+    if ((plusCentage > RAILFULL) && (minusCentage > RAILFULL)) {
+      decision = OPENPEDAL; // let pedalpower charge both rails
+    }
   }
 
   if (decision == MINUSPEDAL) {
