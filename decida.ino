@@ -6,6 +6,7 @@ char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility B
 #define GROUNDPLUSACTIVATE true
 #define GROUNDMINUS 7 // LOW on this pin shorts pedaller's minus to ground
 #define GROUNDMINUSACTIVATE true
+#define SWITCHDELAY 500 // wait after deactivating a transistor before the next one comes on
 #define RELAYPIN 2 // relay cutoff output pin // NEVER USE 13 FOR A RELAY
 #define VOLTPIN A0 // Voltage Sensor Pin
 #define MINUS_VOLTPIN A1 // this pin measures MINUSRAIL voltage
@@ -27,7 +28,7 @@ int analogState[NUM_LEDS] = {0}; // stores the last analogWrite() value for each
                                  // so we don't analogWrite unnecessarily!
 
 #define AVG_CYCLES 50 // average measured values over this many samples
-#define DISPLAY_INTERVAL 1000 // when auto-display is on, display every this many milli-seconds
+#define DISPLAY_INTERVAL 500 // when auto-display is on, display every this many milli-seconds
 #define LED_UPDATE_INTERVAL 1000
 #define BLINK_PERIOD 600
 #define FAST_BLINK_PERIOD 150
@@ -43,6 +44,7 @@ int ledState[NUM_LEDS] = {STATE_OFF}; // on/off/blink/fastblink state of each le
 #define MINUSPEDAL -1
 #define OPENPEDAL 0
 int decision = PLUSPEDAL; // which rail should pedalpower go into?
+int lastDecision = 99; // store our last decision
 
 #define RAILFULL 0.98 // how full is a rail before we decide it is full
 #define DECIDA_SWITCHTIME 500 // minimum time between switching rails to pedal
@@ -135,15 +137,24 @@ void doDecide() {
     }
   }
 
-  if (decision == MINUSPEDAL) {
-    digitalWrite(GROUNDPLUS,GROUNDPLUSACTIVATE); // ground the plusrail
-    digitalWrite(GROUNDMINUS,!GROUNDMINUSACTIVATE); // dont ground minusrail
-  } else if (decision == PLUSPEDAL) {
-    digitalWrite(GROUNDMINUS,GROUNDMINUSACTIVATE); // ground minusrail
-    digitalWrite(GROUNDPLUS,!GROUNDPLUSACTIVATE); // dont ground the plusrail
-  } else if (decision == OPENPEDAL) {
-    digitalWrite(GROUNDMINUS,!GROUNDMINUSACTIVATE); // dont ground minusrail
-    digitalWrite(GROUNDPLUS,!GROUNDPLUSACTIVATE); // dont ground the plusrail
+  if (decision != lastDecision) {
+    if (decision == MINUSPEDAL) {
+      if (digitalRead(GROUNDMINUS) == GROUNDMINUSACTIVATE) {
+        digitalWrite(GROUNDMINUS,!GROUNDMINUSACTIVATE); // dont ground minusrail
+        delayMicroseconds(SWITCHDELAY); // wait for GROUNDMINUS to deactivate)
+      }
+      digitalWrite(GROUNDPLUS,GROUNDPLUSACTIVATE); // ground the plusrail
+    } else if (decision == PLUSPEDAL) {
+      if (digitalRead(GROUNDPLUS) == GROUNDPLUSACTIVATE) {
+        digitalWrite(GROUNDPLUS,!GROUNDPLUSACTIVATE); // dont ground minusrail
+        delayMicroseconds(SWITCHDELAY); // wait for GROUNDPLUS to deactivate)
+      }
+      digitalWrite(GROUNDMINUS,GROUNDMINUSACTIVATE); // ground minusrail
+    } else if (decision == OPENPEDAL) {
+      digitalWrite(GROUNDMINUS,!GROUNDMINUSACTIVATE); // dont ground minusrail
+      digitalWrite(GROUNDPLUS,!GROUNDPLUSACTIVATE); // dont ground the plusrail
+    }
+    lastDecision = decision; // store our state for next time
   }
 }
 
