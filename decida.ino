@@ -10,13 +10,18 @@ char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility B
 #define RELAYPIN 2 // relay cutoff output pin // NEVER USE 13 FOR A RELAY
 #define VOLTPIN A0 // Voltage Sensor Pin
 #define MINUS_VOLTPIN A1 // this pin measures MINUSRAIL voltage
+#define LED_STRIP_PEDALOMETER_PIN A4 // 64 LEDs arranged in an 8x8 grid
+#define NUM_PIXELS 64
+#define LED_STRIP_BRIGHTNESS 128 // brightness of fully-lit pixels
+#include <Adafruit_NeoPixel.h>
+Adafruit_NeoPixel led_strip_pedalometer = Adafruit_NeoPixel(NUM_PIXELS, LED_STRIP_PEDALOMETER_PIN, NEO_GRB + NEO_KHZ800);
 #define NUM_LEDS 4 // Number of LED outputs.
 const int ledPins[NUM_LEDS] = { // 24v LEDS POWERED BY PLUSRAIL
   3, 5, 6, 11}; // pin 9 and 10 are used by decida transistor banks
 
 // levels at which each LED turns on (not including special states)
 const float ledLevels[NUM_LEDS+1] = { // these refer to total system voltage
-  24.0, 32.0, 40.0, 47.0, 51.3}; // the last voltage is when all the LEDs will blink
+  20.0, 30.0, 40.0, 50.0, 54.3}; // the last voltage is when all the LEDs will blink
 
 #define BRIGHTNESSVOLTAGE 24.0  // voltage at which LED brightness starts to fold back
 #define BRIGHTNESSBASE 255  // maximum brightness value (255 is max value here)
@@ -95,6 +100,9 @@ void setup() {
     pinMode(ledPins[i],OUTPUT);
   }
 
+  led_strip_pedalometer.begin(); // initialize LED array
+  led_strip_pedalometer.show();
+
   timeDisplay = millis();
   // setPwmFrequency(9,1); // set frequency of PWM on pins 9 and 10 to 31,250 Hz for buck
   pinMode(GROUNDPLUS,OUTPUT);
@@ -112,6 +120,7 @@ void loop() {
   }
   doBlink();  // blink the LEDs
   doLeds();
+  doStrip(); // update addressible LED pedalometer
 
   if(time - timeDisplay > DISPLAY_INTERVAL){
     printDisplay();
@@ -254,6 +263,36 @@ void doBlink(){
     timeFastBlink = time;
   }
 
+}
+
+void doStrip() {
+  // 20.0, 30.0, 42.0, 52.0, 54.3}; // the last voltage is when all the LEDs will blink
+  char red = LED_STRIP_BRIGHTNESS * (millis() % 1200 > 600); // blinking red
+  char green = 0;
+  char blue = 0;
+  if (volts > ledLevels[0]) red = LED_STRIP_BRIGHTNESS;
+  if (volts > ledLevels[2]) {
+    red = 0;
+    green = LED_STRIP_BRIGHTNESS;
+  }
+  if (volts > ledLevels[3]) {
+    red   = LED_STRIP_BRIGHTNESS;
+    green = LED_STRIP_BRIGHTNESS;
+    blue  = LED_STRIP_BRIGHTNESS;
+  }
+  if (volts > ledLevels[4]) {
+    red   = LED_STRIP_BRIGHTNESS * (millis() % 1200 > 600); // blinking white;
+    green = LED_STRIP_BRIGHTNESS * (millis() % 1200 > 600); // blinking white;
+    blue  = LED_STRIP_BRIGHTNESS * (millis() % 1200 > 600); // blinking white;
+  }
+  for (int i = 0; i < NUM_PIXELS; i++) {
+    if (volts > (((float)i / (float)NUM_PIXELS) * (MAX_PLUSRAIL + MAX_MINUSRAIL))) {
+      led_strip_pedalometer.setPixelColor(i,led_strip_pedalometer.Color(red,green,blue));
+    } else {
+      led_strip_pedalometer.setPixelColor(i,led_strip_pedalometer.Color(0,0,0));
+    }
+  }
+  led_strip_pedalometer.show(); // don't forget to activate the strip
 }
 
 void doLeds(){
