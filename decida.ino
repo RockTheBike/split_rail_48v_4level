@@ -128,8 +128,8 @@ void doDecide() {
     decision = OPENPEDAL; // don't try FETs without enough voltage to close them!
     Serial.println("plusRail < MINIMUM_FETVOLTAGE  ");
   } else {
-    decision = PLUSPEDAL; // default to plusrail
-    if ((plusRail > MINIMUM_PLUSRAIL) && (plusCentage > minusCentage)) {
+    if (plusRail < MAX_PLUSRAIL) decision = PLUSPEDAL; // default to plusrail
+    if ((plusRail > MINIMUM_PLUSRAIL) && (plusRail > minusRail) && (minusRail < MAX_MINUSRAIL)) {
       decision = MINUSPEDAL; // pedal the minus rail now
     }
     if ((plusCentage > RAILFULL) && (minusCentage > RAILFULL)) {
