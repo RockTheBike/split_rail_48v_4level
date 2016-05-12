@@ -52,12 +52,12 @@ int lastDecision = 99; // store our last decision
 #define MINIMUM_PLUSRAIL 9 // below this voltage, pedalling only goes to plusrail
 #define MINIMUM_FETVOLTAGE 8 // below this PLUSRAIL voltage, OPENPEDAL only
 #define MAX_PLUSRAIL 29.7
-#define MAX_MINUSRAIL 29.7
+#define MAX_MINUSRAIL 24.3 // limit total voltage to 54 volts for JBLs
 #define RELAY_HYSTERESIS 4.0 // how many volts of hysteresis to have
 int relayState = STATE_OFF;
 
-#define DANGER_PLUSRAIL 30.0 // 10*2.7=27 volt cap bank
-#define DANGER_MINUSRAIL 30.0 // 9*2.7=24.3 volt cap bank
+#define DANGER_PLUSRAIL 30.0
+#define DANGER_MINUSRAIL 24.6
 int dangerState = STATE_OFF;
 
 int blinkState = 0;
