@@ -27,7 +27,7 @@ int analogState[NUM_LEDS] = {0}; // stores the last analogWrite() value for each
                                  // so we don't analogWrite unnecessarily!
 
 #define AVG_CYCLES 50 // average measured values over this many samples
-#define DISPLAY_INTERVAL 2000 // when auto-display is on, display every this many milli-seconds
+#define DISPLAY_INTERVAL 1000 // when auto-display is on, display every this many milli-seconds
 #define LED_UPDATE_INTERVAL 1000
 #define BLINK_PERIOD 600
 #define FAST_BLINK_PERIOD 150
@@ -348,7 +348,10 @@ void printDisplay(){
   Serial.print(volts);
   Serial.print("v (");
   Serial.print(analogRead(VOLTPIN));
-  Serial.println(")");
+  Serial.print(") ");
+  if (decision == PLUSPEDAL ) Serial.println("PLUSPEDAL ");
+  if (decision == MINUSPEDAL) Serial.println("MINUSPEDAL");
+  if (decision == OPENPEDAL ) Serial.println("OPENPEDAL ");
   //  Serial.print(", voltsBuck: ");
   //  Serial.print(voltsBuck);
   //  Serial.print(", inverter: ");
