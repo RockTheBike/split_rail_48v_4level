@@ -47,15 +47,15 @@ int decision = PLUSPEDAL; // which rail should pedalpower go into?
 #define RAILFULL 0.98 // how full is a rail before we decide it is full
 #define DECIDA_SWITCHTIME 500 // minimum time between switching rails to pedal
 
-#define MINIMUM_PLUSRAIL 22 // below this voltage, pedalling only goes to plusrail
+#define MINIMUM_PLUSRAIL 9 // below this voltage, pedalling only goes to plusrail
 #define MINIMUM_FETVOLTAGE 8 // below this PLUSRAIL voltage, OPENPEDAL only
-#define MAX_PLUSRAIL 27.0
-#define MAX_MINUSRAIL 24.3
+#define MAX_PLUSRAIL 29.7
+#define MAX_MINUSRAIL 29.7
 #define RELAY_HYSTERESIS 4.0 // how many volts of hysteresis to have
 int relayState = STATE_OFF;
 
-#define DANGER_PLUSRAIL 28.0 // 10*2.7=27 volt cap bank
-#define DANGER_MINUSRAIL 25.3 // 9*2.7=24.3 volt cap bank
+#define DANGER_PLUSRAIL 30.0 // 10*2.7=27 volt cap bank
+#define DANGER_MINUSRAIL 30.0 // 9*2.7=24.3 volt cap bank
 int dangerState = STATE_OFF;
 
 int blinkState = 0;
