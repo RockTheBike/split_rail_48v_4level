@@ -54,7 +54,6 @@ int lastDecision = 99; // store our last decision
 #define RAILFULL 0.98 // how full is a rail before we decide it is full
 #define DECIDA_SWITCHTIME 500 // minimum time between switching rails to pedal
 
-#define MINIMUM_PLUSRAIL 9 // below this voltage, pedalling only goes to plusrail
 #define MINIMUM_FETVOLTAGE 8 // below this PLUSRAIL voltage, OPENPEDAL only
 #define MAX_PLUSRAIL 29.7
 #define MAX_MINUSRAIL 24.3 // limit total voltage to 54 volts for JBLs
@@ -138,7 +137,7 @@ void doDecide() {
     Serial.println("plusRail < MINIMUM_FETVOLTAGE  ");
   } else {
     if (plusRail < MAX_PLUSRAIL) decision = PLUSPEDAL; // default to plusrail
-    if ((plusRail > MINIMUM_PLUSRAIL) && (plusRail > minusRail) && (minusRail < MAX_MINUSRAIL)) {
+    if ((plusRail > minusRail) && (minusRail < MAX_MINUSRAIL)) {
       decision = MINUSPEDAL; // pedal the minus rail now
     }
     if ((plusCentage > RAILFULL) && (minusCentage > RAILFULL)) {
