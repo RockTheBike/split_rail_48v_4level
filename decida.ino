@@ -274,11 +274,11 @@ void doStrip() {
     red = 0;
     green = LED_STRIP_BRIGHTNESS;
   }
-  if (volts > ledLevels[3]) {
+  /*if (volts > ledLevels[3]) {
     red   = LED_STRIP_BRIGHTNESS;
     green = LED_STRIP_BRIGHTNESS;
     blue  = LED_STRIP_BRIGHTNESS;
-  }
+  }*/
   if (volts > ledLevels[4]) {
     red   = LED_STRIP_BRIGHTNESS * (millis() % 1200 > 600); // blinking white;
     green = LED_STRIP_BRIGHTNESS * (millis() % 1200 > 600); // blinking white;
