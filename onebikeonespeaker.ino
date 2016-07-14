@@ -34,6 +34,11 @@ char versionStr[] = "Split-Rail DIVIDA 48 volt 1bike 1speaker Pedal Power Utilit
 #define RELAYPIN 2 // relay cutoff output pin // NEVER USE 13 FOR A RELAY
 #define VOLTPIN A0 // Voltage Sensor Pin
 #define AMPSPIN A3 // Current Sensor Pin
+#define LED_STRIP_PEDALOMETER_PIN 12
+#define NUM_PIXELS 30
+#define LED_STRIP_BRIGHTNESS 128 // brightness of fully-lit pixels
+#include <Adafruit_NeoPixel.h>
+Adafruit_NeoPixel led_strip_pedalometer = Adafruit_NeoPixel(NUM_PIXELS, LED_STRIP_PEDALOMETER_PIN, NEO_GRB + NEO_KHZ800);
 #define NUM_LEDS 4 // Number of LED outputs.
 const int ledPins[NUM_LEDS] = {
   3, 4, 5, 6};
@@ -116,6 +121,9 @@ void setup() {
     pinMode(ledPins[i],OUTPUT);
   }
 
+  led_strip_pedalometer.begin(); // initialize LED array
+  led_strip_pedalometer.show();
+
   timeDisplay = millis();
   pinMode(DIVIDAPIN,OUTPUT); // this transistor pulls virtual ground down toward minusrail
 }
@@ -127,6 +135,7 @@ void loop() {
   doSafety();
   doBlink();  // blink the LEDs
   doLeds();
+  doStrip(); // update addressible LED pedalometer
 
   if(time - timeDisplay > DISPLAY_INTERVAL){
     // printWatts();
@@ -188,6 +197,36 @@ void doBlink(){
     timeFastBlink = time;
   }
 
+}
+
+void doStrip() {
+  // 23.0, 28.0, 33.0, 38.0, 43.0}; // the last voltage is when all the LEDs will blink
+  char red = LED_STRIP_BRIGHTNESS * (millis() % 1200 > 600); // blinking red
+  char green = 0;
+  char blue = 0;
+  if (volts > ledLevels[0]) red = LED_STRIP_BRIGHTNESS;
+  if (volts > ledLevels[2]) {
+    red = 0;
+    green = LED_STRIP_BRIGHTNESS;
+  }
+  /*if (volts > ledLevels[3]) {
+    red   = LED_STRIP_BRIGHTNESS;
+    green = LED_STRIP_BRIGHTNESS;
+    blue  = LED_STRIP_BRIGHTNESS;
+  }*/
+  if (volts > ledLevels[4]) {
+    red   = LED_STRIP_BRIGHTNESS * (millis() % 1200 > 600); // blinking white;
+    green = LED_STRIP_BRIGHTNESS * (millis() % 1200 > 600); // blinking white;
+    blue  = LED_STRIP_BRIGHTNESS * (millis() % 1200 > 600); // blinking white;
+  }
+  for (int i = 0; i < NUM_PIXELS; i++) {
+    if (volts > (((float)i / (float)NUM_PIXELS) * (ledLevels[4]))) {
+      led_strip_pedalometer.setPixelColor(i,led_strip_pedalometer.Color(red,green,blue));
+    } else {
+      led_strip_pedalometer.setPixelColor(i,led_strip_pedalometer.Color(0,0,0));
+    }
+  }
+  led_strip_pedalometer.show(); // don't forget to activate the strip
 }
 
 void doLeds(){
