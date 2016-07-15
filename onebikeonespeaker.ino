@@ -23,8 +23,9 @@
  * 2.2 - JS => create branch 1b1i for onebike-oneinverter which buck converts up to 60V down to 12V for inverter
  * 2.3 - JS => create branch decida for split-rail system with automatic rail selection for pedallers (see decida.xcf)
  * 2.4 - JS => rip out a bunch of stuff that we haven't used in a long time
+ * 2.5 - JS => add support for addressible LED strip pedalometer
 */
-char versionStr[] = "Split-Rail DIVIDA 48 volt 1bike 1speaker Pedal Power Utility Box ver. 2.4 branch 1b1s";
+char versionStr[] = "Split-Rail DIVIDA 48 volt 1bike 1speaker Pedal Power Utility Box ver. 2.5 branch 1b1s";
 
 // PINS
 #define DIVIDAPIN 13 // transistor pulls virtual ground toward minusrail
@@ -45,7 +46,7 @@ const int ledPins[NUM_LEDS] = {
 
 // levels at which each LED turns on, and dangerblink voltage
 const float ledLevels[NUM_LEDS+1] = {
-  23.0, 28.0, 33.0, 38.0, 43.0};
+  23.0, 28.0, 33.0, 38.0, 42.0};
 
 #define BRIGHTNESSVOLTAGE 24.0  // voltage at which LED brightness starts to fold back
 #define BRIGHTNESSBASE 255  // maximum brightness value (255 is max value here)
@@ -200,20 +201,20 @@ void doBlink(){
 }
 
 void doStrip() {
-  // 23.0, 28.0, 33.0, 38.0, 43.0}; // the last voltage is when all the LEDs will blink
+  // 23.0, 28.0, 33.0, 38.0, 42.0}; // the last voltage is when all the LEDs will blink
   char red = LED_STRIP_BRIGHTNESS * (millis() % 1200 > 600); // blinking red
   char green = 0;
   char blue = 0;
   if (volts > ledLevels[0]) red = LED_STRIP_BRIGHTNESS;
-  if (volts > ledLevels[2]) {
+  if (volts > ledLevels[1]) {
     red = 0;
     green = LED_STRIP_BRIGHTNESS;
   }
-  /*if (volts > ledLevels[3]) {
+  if (volts > ledLevels[3]) {
     red   = LED_STRIP_BRIGHTNESS;
     green = LED_STRIP_BRIGHTNESS;
     blue  = LED_STRIP_BRIGHTNESS;
-  }*/
+  }
   if (volts > ledLevels[4]) {
     red   = LED_STRIP_BRIGHTNESS * (millis() % 1200 > 600); // blinking white;
     green = LED_STRIP_BRIGHTNESS * (millis() % 1200 > 600); // blinking white;
