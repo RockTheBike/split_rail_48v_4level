@@ -119,7 +119,8 @@ void loop() {
   }
   doBlink();  // blink the LEDs
   doLeds();
-  doStrip(); // update addressible LED pedalometer
+  // doStrip(); // update addressible LED pedalometer
+  sideBySidePedalometer();
 
   if(time - timeDisplay > DISPLAY_INTERVAL){
     printDisplay();
@@ -289,6 +290,30 @@ void doStrip() {
       led_strip_pedalometer.setPixelColor(i,led_strip_pedalometer.Color(red,green,blue));
     } else {
       led_strip_pedalometer.setPixelColor(i,led_strip_pedalometer.Color(0,0,0));
+    }
+  }
+  led_strip_pedalometer.show(); // don't forget to activate the strip
+}
+
+void sideBySidePedalometer() { // https://learn.adafruit.com/assets/35964
+// first pixel is bottom right, next is further left, and after 8 is the second line from bottom
+// since we're using it upside down so that the wires come out on the bottom right.
+  uint32_t amber = Adafruit_NeoPixel::Color(127,80,0);
+  uint32_t blue  = Adafruit_NeoPixel::Color(0,0,127);
+  uint32_t dark  = Adafruit_NeoPixel::Color(5,5,5);
+  uint32_t white = Adafruit_NeoPixel::Color(127,127,127);
+  if ((minusRail < 10) && (millis() % 1200 < 600)) amber = 0; // blink if voltage is too low
+  if ((plusRail  < 10) && (millis() % 1200 > 600)) blue  = 0; // blink if voltage is too low
+  for (int y = 0; y < 8; y++) {
+    for (int x = 0; x < 8; x++) {
+      led_strip_pedalometer.setPixelColor(y*8+x,dark); // default each pixel to dark
+      if (x < 4) { // right half
+        if (minusRail / MAX_MINUSRAIL * 8 > y) led_strip_pedalometer.setPixelColor(y*8+x,blue);
+        if (minusRail / MAX_MINUSRAIL * 8 > 7) led_strip_pedalometer.setPixelColor(y*8+x,white);
+      } else { // left half
+        if (plusRail / MAX_PLUSRAIL * 8 > y) led_strip_pedalometer.setPixelColor(y*8+x,amber);
+        if (plusRail / MAX_PLUSRAIL * 8 > 7) led_strip_pedalometer.setPixelColor(y*8+x,white);
+      }
     }
   }
   led_strip_pedalometer.show(); // don't forget to activate the strip
