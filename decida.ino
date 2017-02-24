@@ -8,6 +8,7 @@ char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility B
 #define GROUNDMINUSACTIVATE true
 #define SWITCHDELAY 500 // wait after deactivating a transistor before the next one comes on
 #define RELAYPIN 2 // relay cutoff output pin // NEVER USE 13 FOR A RELAY
+#define PEDALOMETER_SELECT_PIN 10 // shorted to ground to select sideBySidePedalometer instead of dotsPedalometer
 #define VOLTPIN A0 // Voltage Sensor Pin
 #define MINUS_VOLTPIN A1 // this pin measures MINUSRAIL voltage
 #define LED_STRIP_PEDALOMETER_PIN A4 // 64 LEDs arranged in an 8x8 grid
@@ -93,6 +94,7 @@ void setup() {
 
   pinMode(RELAYPIN, OUTPUT);
   digitalWrite(RELAYPIN,LOW);
+  digitalWrite(PEDALOMETER_SELECT_PIN,HIGH); // enable pull-up resistor
 
   // init LED pins
   for(int i = 0; i < NUM_LEDS; i++) {
@@ -119,8 +121,11 @@ void loop() {
   }
   doBlink();  // blink the LEDs
   doLeds();
-  // doStrip(); // update addressible LED pedalometer
-  sideBySidePedalometer();
+  if (digitalRead(PEDALOMETER_SELECT_PIN)) {
+    dotsPedalometer(); // update addressible LED pedalometer
+  } else {
+    sideBySidePedalometer();
+  }
 
   if(time - timeDisplay > DISPLAY_INTERVAL){
     printDisplay();
@@ -265,7 +270,7 @@ void doBlink(){
 
 }
 
-void doStrip() {
+void dotsPedalometer() {
   // 20.0, 30.0, 42.0, 52.0, 54.3}; // the last voltage is when all the LEDs will blink
   char red = LED_STRIP_BRIGHTNESS * (millis() % 1200 > 600); // blinking red
   char green = 0;
