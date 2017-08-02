@@ -152,6 +152,9 @@ void doDecide() {
   }
 
   if (decision != lastDecision) {
+    digitalWrite(GROUNDMINUS,!GROUNDMINUSACTIVATE);
+    digitalWrite(GROUNDPLUS,!GROUNDPLUSACTIVATE);
+    delay(1); // make sure we don't overlap transistors - deadtime
     if (decision == MINUSPEDAL) {
       if (digitalRead(GROUNDMINUS) == GROUNDMINUSACTIVATE) {
         digitalWrite(GROUNDMINUS,!GROUNDMINUSACTIVATE); // dont ground minusrail
