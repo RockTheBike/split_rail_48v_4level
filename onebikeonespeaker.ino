@@ -36,10 +36,11 @@ char versionStr[] = "Split-Rail DIVIDA 48 volt 1bike 1speaker Pedal Power Utilit
 #define VOLTPIN A0 // Voltage Sensor Pin
 #define AMPSPIN A3 // Current Sensor Pin
 #define LED_STRIP_PEDALOMETER_PIN 12
-#define NUM_PIXELS 30
+#define NUM_PIXELS 12
+#define NUM_PIXEL_REPEATS 3 // repeat the same pattern this many times in series LED strips
 #define LED_STRIP_BRIGHTNESS 128 // brightness of fully-lit pixels
 #include <Adafruit_NeoPixel.h>
-Adafruit_NeoPixel led_strip_pedalometer = Adafruit_NeoPixel(NUM_PIXELS, LED_STRIP_PEDALOMETER_PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel led_strip_pedalometer = Adafruit_NeoPixel(NUM_PIXELS, LED_STRIP_PEDALOMETER_PIN, NEO_GRB + NEO_KHZ800, NUM_PIXEL_REPEATS);
 #define NUM_LEDS 4 // Number of LED outputs.
 const int ledPins[NUM_LEDS] = {
   3, 4, 5, 6};
