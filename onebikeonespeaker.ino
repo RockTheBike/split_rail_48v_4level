@@ -47,7 +47,7 @@ const int ledPins[NUM_LEDS] = {
 
 // levels at which each LED turns on, and dangerblink voltage
 const float ledLevels[NUM_LEDS+1] = {
-  23.0, 28.0, 33.0, 38.0, 42.0};
+  23.0, 29.0, 35.0, 41.0, 48.0};
 
 #define BRIGHTNESSVOLTAGE 24.0  // voltage at which LED brightness starts to fold back
 #define BRIGHTNESSBASE 255  // maximum brightness value (255 is max value here)
@@ -72,8 +72,8 @@ int analogState[NUM_LEDS] = {0}; // stores the last analogWrite() value for each
 int ledState[NUM_LEDS] = {
   STATE_OFF};
 
-#define MAX_VOLTS 43.2  //
-#define RECOVERY_VOLTS 36.0
+#define MAX_VOLTS 48.6  // 18 capacitors
+#define RECOVERY_VOLTS 42.6 // when the relay clicks the pedaler back in
 int relayState = STATE_OFF;
 
 #define DANGER_VOLTS (MAX_VOLTS + 1.0)
