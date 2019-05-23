@@ -4,7 +4,7 @@ char versionStr[] = "Split-Rail 48 volt 4-line pedalometer Pedal Power Utility B
 // PINS
 #define GROUNDPLUS 4 // HIGH on this pin shorts pedaller's plus to ground
 #define GROUNDPLUSACTIVATE true
-#define GROUNDMINUS 7 // LOW on this pin shorts pedaller's minus to ground
+#define GROUNDMINUS 7 // HIGH on this pin shorts pedaller's minus to ground
 #define GROUNDMINUSACTIVATE true
 #define SWITCHDELAY 500 // wait after deactivating a transistor before the next one comes on
 #define RELAYPIN 2 // relay cutoff output pin // NEVER USE 13 FOR A RELAY
