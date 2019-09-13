@@ -1,5 +1,4 @@
 #define BAUD_RATE 57600
-#define DEBUG 1 // set to 1 to enable serial information printing
 char versionStr[] = "Single-Rail 24 volt sLEDgehammer for two teams at the Solar Living Center ver. 2.7 branch:solarliving";
 
 // PINS
@@ -111,19 +110,14 @@ float voltish = 0; // this is where we store the adjusted voltage
 int timeSinceVoltageBeganFalling = 0;
 // var for looping through arrays
 int i = 0;
-int boxNumber; // short pin A5 to ground on boxNumber 1
 
 void setup() {
   Serial.begin(BAUD_RATE);
 
-  if (DEBUG) Serial.println(versionStr);
+  Serial.println(versionStr);
 
   pinMode(RELAYPIN, OUTPUT);
   digitalWrite(RELAYPIN,LOW);
-
-  boxNumber = 1;  // box 1 if pin A5 is shorted to ground
-  digitalWrite(A5,HIGH);  // enable pull-up resistor on A5
-  if (digitalRead(A5)) boxNumber = 2; // if A5 is not shorted to ground
 
   // init LED pins
   for(i = 0; i < NUM_LEDS; i++) {
@@ -345,7 +339,7 @@ void doSafety() {
   if (relayState == STATE_OFF && volts > MAX_VOLTS) {
     digitalWrite(RELAYPIN, HIGH);
     relayState = STATE_ON;
-    if (DEBUG) Serial.println("RELAY OPEN");
+    Serial.println("RELAY OPEN");
     // try to keep the voltage down
     for(i = 0; i < NUM_LEDS; i++) {
       digitalWrite(ledPins[i], HIGH);
@@ -356,7 +350,7 @@ void doSafety() {
   if (relayState == STATE_ON && volts < RECOVERY_VOLTS){
     digitalWrite(RELAYPIN, LOW);
     relayState = STATE_OFF;
-    if (DEBUG) Serial.println("RELAY CLOSED");
+    Serial.println("RELAY CLOSED");
   }
 
   if (volts > DANGER_VOLTS){
@@ -421,32 +415,32 @@ void calcWattHours(){
 }
 
 void printWatts(){
-  if (DEBUG) Serial.print("w");
-  if (DEBUG) Serial.println(watts);
+  Serial.print("w");
+  Serial.println(watts);
 }
 
 void printWattHours(){
-  if (DEBUG) Serial.print("w"); // tell the sign to print the following number
+  Serial.print("w"); // tell the sign to print the following number
   //  the sign will ignore printed decimal point and digits after it!
-  if (DEBUG) Serial.println(wattHours,1); // print just the number of watt-hours
-  //  if (DEBUG) Serial.println(wattHours*10,1); // for this you must put a decimal point onto the sign!
+  Serial.println(wattHours,1); // print just the number of watt-hours
+  //  Serial.println(wattHours*10,1); // for this you must put a decimal point onto the sign!
 }
 
 void printDisplay(){
-  if (DEBUG) Serial.print(realVolts);
-  if (DEBUG) Serial.print("v ");
-  if (DEBUG) Serial.print(volts);
-  if (DEBUG) Serial.print("fv ");
-  if (DEBUG && voltishFactor > 1.0) Serial.print(voltish);
-  if (DEBUG && voltishFactor > 1.0) Serial.print("voltish ");
-  // if (DEBUG) Serial.print(analogRead(VOLTPIN));
-  if (DEBUG) Serial.print("   relayState: ");
-  if (DEBUG) Serial.print(relayState);
-  if (DEBUG) Serial.print("  gameState: ");
-  if (DEBUG) Serial.print(gameState);
-  if (DEBUG) Serial.print("  efforts:");
-  if (DEBUG) Serial.print(ampsAdcAvg[0]);
-  if (DEBUG) Serial.print( winning_team ? '<' : '>' );
-  if (DEBUG) Serial.print(ampsAdcAvg[1]);
-  if (DEBUG) Serial.println();
+  Serial.print(realVolts);
+  Serial.print("v ");
+  Serial.print(volts);
+  Serial.print("fv ");
+  if (voltishFactor > 1.0) Serial.print(voltish);
+  if (voltishFactor > 1.0) Serial.print("voltish ");
+  // Serial.print(analogRead(VOLTPIN));
+  Serial.print("   relayState: ");
+  Serial.print(relayState);
+  Serial.print("  gameState: ");
+  Serial.print(gameState);
+  Serial.print("  efforts:");
+  Serial.print(ampsAdcAvg[0]);
+  Serial.print( winning_team ? '<' : '>' );
+  Serial.print(ampsAdcAvg[1]);
+  Serial.println();
 }
