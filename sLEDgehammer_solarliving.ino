@@ -1,33 +1,6 @@
 #define BAUD_RATE 57600
 #define DEBUG 1 // set to 1 to enable serial information printing
-/**** Single-rail Pedalometer
- * Arduino code to run the Dance with Lance Arbduino
- * ver. 1.14
- * Written by:
- * Thomas Spellman <thomas@thosmos.com>
- * Jake <jake@spaz.org>
- * Paul@rockthebike.com
- *
- * Notes:
- * 1.6 - moved version to the top, started protocol of commenting every change in file and in Git commit
- * 1.7 - jake 6-21-2012 disable minusalert until minus rail is pedaled at least once (minusAlertEnable and startupMinusVoltage)
- * 1.8 -- FF added annoying light sequence for when relay fails or customer bypasses protection circuitry.+
- * 1.9 - TS => cleaned up a bit, added state constants, turn off lowest 2 levels when level 3 and above
- * 1.10 - TS => cleaned up levels / pins variables, changed to a "LEDs" naming scheme
- * 1.11 - TS => does a very slow 4digits watts average, fixed the high blink
- * 1.12 - TS => printWatts uses D4Avg instead of watts, 300 baud
- * 1.13 - TS => D4Avg fix, 2400 baud
- * 1.14 - FF => Added CalcWattHours function, changing the Sign's data to Watt Hours, instead of Watts, in time for BMF VII
- * 1.15 - JS => started adding buck converter stuff
- * 2.1 - JS => changed to split_rail_48v_4level, adding PWM for LED pedalometer, turning off buck converter and sign output
- * 2.15 - JS => fixed so white LEDs are solid before starting to blink at 50v, tuned relay voltages
- * 2.2 - JS => create branch 1b1i for onebike-oneinverter which buck converts up to 60V down to 12V for inverter
- * 2.3 - JS => create branch decida for split-rail system with automatic rail selection for pedallers (see decida.xcf)
- * 2.4 - JS => rip out a bunch of stuff that we haven't used in a long time
- * 2.5 - JS => create branch sledge for ten-line sLEDgehammer pedalpower lightshow reactor
- * 2.6 - MPS => create branch solarliving for sLEDgehammer for Solar Living Center
-*/
-char versionStr[] = "Single-Rail 12 volt sLEDgehammer for two teams at the Solar Living Center ver. 2.6 branch:solarliving";
+char versionStr[] = "Single-Rail 24 volt sLEDgehammer for two teams at the Solar Living Center ver. 2.7 branch:solarliving";
 
 // PINS
 // NEVER USE 13 FOR A RELAY:
@@ -76,11 +49,11 @@ int analogState[NUM_LEDS] = {0}; // stores the last analogWrite() value for each
 int ledState[NUM_LEDS] = {
   STATE_OFF};
 
-#define MAX_VOLTS 13.5
-#define RECOVERY_VOLTS 13.0
+#define MAX_VOLTS 27.0
+#define RECOVERY_VOLTS 25.0
 int relayState = STATE_OFF;
 
-#define DANGER_VOLTS 13.7
+#define DANGER_VOLTS 28.0
 int dangerState = STATE_OFF;
 
 int blinkState = 0;
@@ -220,9 +193,9 @@ void playGame() {
 }
 
 int thermometerAnimation() {
-  #define VICTORY_THRESHOLD 12.5
+  #define VICTORY_THRESHOLD 25.0
   // we control the column LEDs with some combo of voltage and accumulated team effort
-  static const float threshold_for_column_led[] = { 6.0, 8.0, 9.25, 10.5, 11.5 };
+  static const float threshold_for_column_led[] = { 12.0, 16.0, 18.5, 21.0, 23.0 };
   for( int team=0; team<NUM_TEAMS; team++ ) {
     float creditedVolts = voltish * ampsAdcAvg[team] / max(ampsAdcAvg[0],ampsAdcAvg[1]);
     for( int col=0; col<NUM_COLUMNS; col++ )
@@ -235,7 +208,7 @@ int thermometerAnimation() {
 }
 
 int partyAnimation() {
-  #define SUSTAINED_VICTORY_THRESHOLD 8.0
+  #define SUSTAINED_VICTORY_THRESHOLD 16.0
   static int millis_until_next_frame = 2000;
   static int old_frame_index;
   static int new_frame_index = 0;
@@ -302,7 +275,7 @@ int partyAnimation() {
 }
 
 int drainAnimation() {
-  #define DRAINED_THRESHOLD 6.0
+  #define DRAINED_THRESHOLD 12.0
   for( i=0; i<NUM_LEDS; i++ )
     ledState[i] = STATE_ON;
   return voltish < DRAINED_THRESHOLD ? THERMOMETER_STATE : DRAIN_STATE;
