@@ -78,8 +78,8 @@ unsigned long vRTime = 0; // last time we stored a voltRecord
 //Current related variables
 int ampsAdc = 0;
 float ampsAdcAvg[NUM_TEAMS];
-const float ampsBase[NUM_TEAMS] = { 511.00, 507.85 };  // measurement with zero current
-const float ampsScale[NUM_TEAMS] = { 1, -1 };
+const float ampsBase[NUM_TEAMS] = { 119.00, 122.00 };  // measurement with zero current
+const float ampsScale[NUM_TEAMS] = { 1, 1 };
 float amps = 0;
 int winning_team;
 float volts2SecondsAgo = 0;
@@ -115,6 +115,7 @@ void setup() {
   Serial.begin(BAUD_RATE);
 
   Serial.println(versionStr);
+  Serial.println("ampsBase[0]="+String(ampsBase[0])+" ampsBase[1]="+String(ampsBase[1]));
 
   pinMode(RELAYPIN, OUTPUT);
   digitalWrite(RELAYPIN,LOW);
@@ -442,5 +443,6 @@ void printDisplay(){
   Serial.print(ampsAdcAvg[0]);
   Serial.print( winning_team ? '<' : '>' );
   Serial.print(ampsAdcAvg[1]);
+  Serial.print(" ("+String(analogRead(AMPSPINS[0]))+")/("+String(analogRead(AMPSPINS[1]))+")");
   Serial.println();
 }
