@@ -270,7 +270,7 @@ int partyAnimation() {
 }
 
 int drainAnimation() {
-  #define DRAINED_THRESHOLD 12.0
+  #define DRAINED_THRESHOLD 14.0
   for( i=0; i<NUM_LEDS; i++ )
     ledState[i] = STATE_ON;
   return voltish < DRAINED_THRESHOLD ? THERMOMETER_STATE : DRAIN_STATE;
