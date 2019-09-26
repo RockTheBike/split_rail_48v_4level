@@ -256,7 +256,7 @@ int partyAnimation() {
     // 6.868 = a
     // -1900 = 6.868 * 169 + b * 13
     // -235.4378 = b
-    millis_until_next_frame = 6.868 * volts*volts + -235.4378 * volts + 2000;
+    millis_until_next_frame = 6.868 * volts*volts + -235.4378 * volts + 2000; // ax^2 + bx + c
     time_for_next_frame =
       ( time_for_next_frame ? time_for_next_frame : time ) + millis_until_next_frame;
     old_frame_index = new_frame_index;
@@ -264,8 +264,11 @@ int partyAnimation() {
   }
   // PWM via picking between frames with increasing probability of later frame
   int frame_index = rand() < RAND_MAX / millis_until_next_frame * ( time_for_next_frame - time ) ? old_frame_index : new_frame_index;
-  for( i=0; i<NUM_LEDS; i++ )
+  for( i=0; i<NUM_LEDS; i++ ) {
     ledState[i] = frames[frame_index][i] ? STATE_ON : STATE_OFF;
+    Serial.print((ledState[i] ? '^' : '_'));
+  }
+  Serial.println(millis());
   return voltish > SUSTAINED_VICTORY_THRESHOLD ? PARTY_STATE : DRAIN_STATE;
 }
 
@@ -434,15 +437,14 @@ void printDisplay(){
   Serial.print("fv ");
   if (voltishFactor > 1.0) Serial.print(voltish);
   if (voltishFactor > 1.0) Serial.print("voltish ");
-  // Serial.print(analogRead(VOLTPIN));
-  Serial.print("   relayState: ");
-  Serial.print(relayState);
-  Serial.print("  gameState: ");
-  Serial.print(gameState);
+  if (relayState) Serial.print(" RELAY OPEN ");
+  if (gameState == THERMOMETER_STATE) Serial.print("  THERMOMETER_STATE");
+  if (gameState == PARTY_STATE) Serial.print("  PARTY_STATE");
+  if (gameState == DRAIN_STATE) Serial.print("     DRAIN_STATE");
   Serial.print("  efforts:");
-  Serial.print(ampsAdcAvg[0]);
+  Serial.print(String(ampsAdcAvg[0])+" ");
   Serial.print( winning_team ? '<' : '>' );
-  Serial.print(ampsAdcAvg[1]);
+  Serial.print(" "+String(ampsAdcAvg[1]));
   Serial.print(" ("+String(analogRead(AMPSPINS[0]))+")/("+String(analogRead(AMPSPINS[1]))+")");
   Serial.println();
 }
