@@ -190,7 +190,7 @@ void playGame() {
 int thermometerAnimation() {
   #define VICTORY_THRESHOLD 25.0
   // we control the column LEDs with some combo of voltage and accumulated team effort
-  static const float threshold_for_column_led[] = { 12.0, 16.0, 18.5, 21.0, 23.0 };
+  static const float threshold_for_column_led[] = { 14.2, 16.4, 18.6, 21.0, 23.0 };
   for( int team=0; team<NUM_TEAMS; team++ ) {
     float creditedVolts = voltish * ampsAdcAvg[team] / max(ampsAdcAvg[0],ampsAdcAvg[1]);
     for( int col=0; col<NUM_COLUMNS; col++ )
@@ -207,7 +207,7 @@ int partyAnimation() {
   static int millis_until_next_frame = 2000;
   static int old_frame_index;
   static int new_frame_index = 0;
-  static unsigned long time_for_next_frame;
+  static unsigned long time_for_next_frame = 0;
   // turn on halogen sink so sudden drop in load doesn't overpower capacitor
   const int frames_single_clockwise[][NUM_LEDS] = {
     { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
