@@ -431,6 +431,10 @@ void printWattHours(){
 }
 
 void printDisplay(){
+  for( i=0; i<NUM_LEDS; i++ ) {
+    Serial.print((ledState[i] ? char(i+48) : '_'));
+  }
+  Serial.print("  ");
   Serial.print(realVolts);
   Serial.print("v ");
   Serial.print(volts);
